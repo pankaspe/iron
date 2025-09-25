@@ -1,29 +1,47 @@
-import { createSignal, For, Show } from "solid-js";
+import { createSignal, Show, Switch, Match } from "solid-js";
 import { open } from "@tauri-apps/plugin-dialog";
 import { invoke } from "@tauri-apps/api/core";
-import "./App.css"; // Il tuo CSS ora contiene solo Tailwind e DaisyUI
+import { listen, UnlistenFn } from "@tauri-apps/api/event";
 
-// L'interfaccia dei dati non cambia
-interface OptimizationResult {
+// Componenti e Tipi
+import { Titlebar } from "./components/TitleBar";
+import { ActionButtons } from "./components/ActionButtons";
+import { EmptyState } from "./components/EmptyState";
+// FIX: Importa anche il tipo 'ImageInfo' da qui
+import { FileList, ImageInfo } from "./components/FileList";
+import { ResultsTable } from "./components/ResultsTable";
+import { LoadingState } from "./components/LoadingState";
+import { FiAlertTriangle } from "solid-icons/fi";
+import "./App.css";
+
+// Tipi che ci aspettiamo da Rust
+type OptimizationResult = {
   original_path: string;
   optimized_path: string;
   original_size_kb: number;
   optimized_size_kb: number;
   reduction_percentage: number;
-}
+};
+type ProgressPayload = {
+  result: OptimizationResult;
+  current: number;
+  total: number;
+};
 
 function App() {
-  // Tutta la logica e i signal rimangono identici
-  const [filePaths, setFilePaths] = createSignal<string[]>([]);
+  // FIX: Rinomina lo stato per coerenza
+  const [imageInfos, setImageInfos] = createSignal<ImageInfo[]>([]);
   const [results, setResults] = createSignal<OptimizationResult[]>([]);
   const [isLoading, setIsLoading] = createSignal(false);
   const [errorMessage, setErrorMessage] = createSignal<string | null>(null);
+  const [progress, setProgress] = createSignal({ current: 0, total: 0 });
 
   async function openFileDialog(multiple: boolean) {
     try {
       setResults([]);
+      setImageInfos([]);
       setErrorMessage(null);
-      const selected = await open({
+      const selectedPaths = await open({
         multiple: multiple,
         directory: false,
         filters: [
@@ -34,156 +52,107 @@ function App() {
         ],
       });
 
-      if (Array.isArray(selected)) {
-        setFilePaths(selected);
-      } else if (selected === null) {
-        setFilePaths([]);
-      } else {
-        setFilePaths([selected]);
+      if (selectedPaths) {
+        const paths = Array.isArray(selectedPaths)
+          ? selectedPaths
+          : [selectedPaths];
+        const infos = await invoke<ImageInfo[]>("get_image_metadata", {
+          paths,
+        });
+        setImageInfos(infos);
       }
-    } catch (error) {
-      console.error("Error opening dialog:", error);
+    } catch (e) {
+      console.error(e);
       setErrorMessage("Failed to open file dialog.");
     }
   }
 
   async function handleOptimize() {
-    if (filePaths().length === 0) return;
+    // FIX: Usa 'imageInfos' invece di 'filePaths'
+    if (imageInfos().length === 0) return;
+
     setIsLoading(true);
     setResults([]);
     setErrorMessage(null);
+    setProgress({ current: 0, total: imageInfos().length });
+
+    let unlisten: UnlistenFn | null = null;
+
     try {
-      const optimizationResults = await invoke<OptimizationResult[]>(
-        "optimize_images",
-        {
-          paths: filePaths(),
+      unlisten = await listen<ProgressPayload>(
+        "optimization-progress",
+        (event) => {
+          setResults((prev) => [...prev, event.payload.result]);
+          setProgress({
+            current: event.payload.current,
+            total: event.payload.total,
+          });
         },
       );
-      setResults(optimizationResults);
-    } catch (error) {
-      console.error("Optimization failed:", error);
-      setErrorMessage(String(error));
+
+      // FIX: Usa 'imageInfos' anche qui
+      await invoke("optimize_images", {
+        paths: imageInfos().map((f) => f.path),
+      });
+    } catch (e) {
+      console.error(e);
+      setErrorMessage(String(e));
     } finally {
       setIsLoading(false);
+      if (unlisten) {
+        unlisten();
+      }
     }
   }
 
-  // Qui inizia la nuova UI con DaisyUI
   return (
-    <main class="p-8 max-w-4xl mx-auto">
-      <h1 class="text-4xl font-bold text-center mb-8">Image Optimizer</h1>
-
-      {/* Pulsanti di azione in un contenitore flessibile */}
-      <div class="flex justify-center gap-4 mb-8">
-        <button class="btn btn-primary" onClick={() => openFileDialog(false)}>
-          Open Single File
-        </button>
-        <button class="btn btn-primary" onClick={() => openFileDialog(true)}>
-          Open Multiple Files
-        </button>
-        <button
-          class="btn btn-success" // Un bel verde per l'azione principale
-          onClick={handleOptimize}
-          disabled={filePaths().length === 0 || isLoading()}
-        >
-          <Show when={isLoading()}>
-            <span class="loading loading-spinner"></span>
-            Optimizing...
-          </Show>
-          <Show when={!isLoading()}>
-            {`Optimize ${filePaths().length} File(s)`}
-          </Show>
-        </button>
-      </div>
-
-      {/* Lista dei file selezionati dentro un "card" per un look migliore */}
-      <Show when={filePaths().length > 0}>
-        <div class="card bg-base-200 shadow-xl mb-8">
-          <div class="card-body">
-            <h2 class="card-title">Selected Files:</h2>
-            <ul class="list-disc pl-5">
-              <For each={filePaths()}>
-                {(path) => <li class="font-mono text-sm">{path}</li>}
-              </For>
-            </ul>
+    <div class="bg-base-100 min-h-screen rounded-lg flex flex-col">
+      <Titlebar />
+      <div class="flex-grow flex flex-col p-8 pt-20">
+        <header class="flex-shrink-0">
+          <ActionButtons
+            onOpenFile={openFileDialog}
+            onOptimize={handleOptimize}
+            isLoading={isLoading()}
+            // FIX: Usa 'imageInfos' per il conteggio
+            fileCount={imageInfos().length}
+          />
+          <div class="min-h-16 mb-8">
+            <Show when={errorMessage()}>
+              <div role="alert" class="alert alert-error animate-fade-in">
+                <FiAlertTriangle class="h-6 w-6" />
+                <span>Error: {errorMessage()}</span>
+              </div>
+            </Show>
           </div>
-        </div>
-      </Show>
+        </header>
 
-      {/* Componente "alert" per i messaggi di stato */}
-      <Show when={isLoading()}>
-        <div role="alert" class="alert alert-info mb-8">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-            class="stroke-current shrink-0 w-6 h-6"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-            ></path>
-          </svg>
-          <span>Processing images, please wait...</span>
-        </div>
-      </Show>
-
-      <Show when={errorMessage()}>
-        <div role="alert" class="alert alert-error mb-8">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            class="stroke-current shrink-0 h-6 w-6"
-            fill="none"
-            viewBox="0 0 24 24"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"
-            />
-          </svg>
-          <span>Error: {errorMessage()}</span>
-        </div>
-      </Show>
-
-      {/* Tabella dei risultati con lo stile di DaisyUI */}
-      <Show when={results().length > 0}>
-        <div class="overflow-x-auto">
-          <table class="table table-zebra w-full">
-            <thead>
-              <tr>
-                <th>File</th>
-                <th>Original Size</th>
-                <th>Optimized Size</th>
-                <th class="text-right">Reduction</th>
-              </tr>
-            </thead>
-            <tbody>
-              <For each={results()}>
-                {(res) => (
-                  <tr>
-                    <td class="font-mono text-sm">
-                      {res.optimized_path.split(/[\\/]/).pop()}
-                    </td>
-                    <td>{res.original_size_kb.toFixed(2)} KB</td>
-                    <td>{res.optimized_size_kb.toFixed(2)} KB</td>
-                    <td class="text-right">
-                      {/* Componente "badge" per evidenziare la riduzione */}
-                      <div class="badge badge-lg badge-success">
-                        {res.reduction_percentage.toFixed(2)}%
-                      </div>
-                    </td>
-                  </tr>
-                )}
-              </For>
-            </tbody>
-          </table>
-        </div>
-      </Show>
-    </main>
+        <main class="flex-grow flex flex-col justify-center">
+          <Switch>
+            <Match when={isLoading()}>
+              {/* FIX: Passa il prop 'progress' richiesto dal componente */}
+              <LoadingState progress={progress()} />
+            </Match>
+            <Match when={results().length > 0}>
+              <ResultsTable results={results()} />
+            </Match>
+            <Match when={imageInfos().length > 0}>
+              {/* FIX: Passa 'imageInfos' al componente FileList */}
+              <FileList files={imageInfos()} />
+            </Match>
+            <Match
+              when={
+                !isLoading() &&
+                imageInfos().length === 0 &&
+                results().length === 0
+              }
+            >
+              <EmptyState />
+            </Match>
+          </Switch>
+        </main>
+      </div>
+    </div>
   );
 }
 
