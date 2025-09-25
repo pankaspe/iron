@@ -3,6 +3,7 @@
   "productName": "iron",
   "version": "0.1.0",
   "identifier": "com.iron.app",
+
   "build": {
     "beforeDevCommand": "bun run dev",
     "devUrl": "http://localhost:1420",
