@@ -1,10 +1,8 @@
 # Iron - Image Rust Optimizer
 
 ![Status](https://img.shields.io/badge/status-work_in_progress-yellow)
-![Tech](https://img.shields.io/badge/tech-Tauri_|_Rust_|_SolidJS-blueviolet)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Rust Version](https://img.shields.io/badge/rust-2024-orange.svg)](https://www.rust-lang.org/)
-![Status](https://img.shields.io/badge/status-work_in_progress-yellow)
 
 ![Iron](screenshot2.png)
 
