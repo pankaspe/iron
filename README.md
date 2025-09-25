@@ -1,63 +1,50 @@
 # Iron - Image Rust Optimizer
 
+![Status](https://img.shields.io/badge/status-work_in_progress-yellow)
+![Tech](https://img.shields.io/badge/tech-Tauri_|_Rust_|_SolidJS-blueviolet)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Rust Version](https://img.shields.io/badge/rust-2024-orange.svg)](https://www.rust-lang.org/)
 ![Status](https://img.shields.io/badge/status-work_in_progress-yellow)
 
 ![Iron](screenshot.png)
 
-Una semplice e potente applicazione desktop per ottimizzare le immagini per il web, costruita con Tauri, SolidJS e Rust.
-
-## Core Technologies
-
-*   **Tauri (v2)**: Per creare un'applicazione desktop leggera, sicura e cross-platform usando tecnologie web per la UI e Rust per il backend.
-*   **SolidJS & TypeScript**: Per un'interfaccia utente reattiva, performante e type-safe.
-*   **Rust**: Per la logica di backend, garantendo performance eccellenti nell'elaborazione delle immagini.
+**Iron** è una moderna applicazione desktop per l'ottimizzazione delle immagini web. Progettata per essere veloce, efficiente e bella da vedere, combina la potenza di Rust per l'elaborazione di backend con la reattività di SolidJS per un'interfaccia utente fluida. Il risultato è un'esperienza nativa e performante.
 
 ---
 
-## Funzionalità Attuali (Cosa fa l'app ora)
+## Funzionalità Chiave
 
-### 1. Selezione dei File
-*   **Selezione Singola e Multipla**: L'utente può scegliere se aprire un singolo file o più file contemporaneamente.
-*   **Dialogo Nativo**: Utilizza la finestra di dialogo nativa del sistema operativo (Windows, macOS, Linux) per un'esperienza utente familiare e integrata, grazie al `tauri-plugin-dialog`.
-*   **Filtro per Immagini Web**: La finestra di dialogo filtra automaticamente i file, mostrando solo i formati di immagine più comuni (`.jpg`, `.jpeg`, `.png`, `.webp`, `.gif`, `.svg`).
+L'applicazione è stata riprogettata per offrire un'esperienza utente moderna e senza interruzioni.
 
-### 2. Ottimizzazione delle Immagini
-*   **Backend in Rust**: Tutta la logica di elaborazione è scritta in Rust per la massima velocità e sicurezza.
-*   **Supporto per JPEG e PNG**: Il core dell'applicazione è in grado di ottimizzare i due formati più diffusi sul web.
-    *   **JPEG**: Le immagini vengono ricodificate con una qualità dell'80%, ottenendo un'eccellente riduzione del peso con una perdita di qualità visiva minima e spesso impercettibile.
-    *   **PNG**: Le immagini vengono salvate nuovamente sfruttando gli efficienti algoritmi di compressione della libreria Rust `image`.
-*   **Salvataggio Non Distruttivo**: I file originali non vengono mai modificati. Le versioni ottimizzate vengono salvate nella stessa cartella con il suffisso `-optimized` (es. `foto.jpg` → `foto-optimized.jpg`).
+#### 🎨 **Interfaccia Unificata e Personalizzata**
+*   **Title Bar Custom**: La barra del titolo nativa del sistema operativo è stata rimossa e sostituita con un componente personalizzato, creando un design moderno e integrato. La finestra è completamente trascinabile e i controlli (minimizza, massimizza, chiudi) sono gestiti tramite le API di Tauri.
+*   **UI Coerente e Raffinata**: Grazie a **DaisyUI** e **Solid Icons**, l'interfaccia è pulita e coerente in ogni sua fase. L'utente visualizza anteprime e metadati delle immagini sia prima che dopo l'ottimizzazione, in tabelle informative dallo stile identico.
 
-### 3. Analisi e Risultati
-*   **Feedback Immediato**: Dopo l'ottimizzazione, l'interfaccia utente mostra una tabella chiara con i risultati.
-*   **Dati Dettagliati**: Per ogni immagine, l'utente può vedere:
-    *   Il nome del file.
-    *   La dimensione originale in KB.
-    *   La dimensione ottimizzata in KB.
-    *   La **percentuale di riduzione del peso**, l'informazione più importante per l'utente.
-*   **Gestione dello Stato**: L'interfaccia mostra messaggi di caricamento durante l'elaborazione e gestisce correttamente eventuali errori provenienti dal backend Rust, mostrandoli all'utente.
+#### ⚡ **Elaborazione Asincrona e Feedback in Tempo Reale**
+*   **La UI non si blocca mai**: Il processo di ottimizzazione, potenzialmente lungo, viene eseguito in un thread Rust separato. Questo garantisce che l'interfaccia utente rimanga sempre fluida e reattiva, anche durante l'elaborazione di decine di file.
+*   **Progress Bar Reale**: Durante l'ottimizzazione, un'elegante schermata di caricamento mostra una progress bar che si aggiorna in tempo reale. Questo è possibile grazie a un sistema di **eventi Tauri** che permette al backend Rust di comunicare i progressi al frontend passo dopo passo.
+
+#### 🏗️ **Architettura Solida e Scalabile**
+*   **Frontend a Componenti**: L'interfaccia è suddivisa in componenti SolidJS riutilizzabili e focalizzati su un singolo scopo (`Titlebar`, `FileList`, `ResultsTable`, `LoadingState`), rendendo il codice pulito e manutenibile.
+*   **Comunicazione Efficiente**: Il frontend e il backend comunicano in modo ottimale: comandi rapidi per operazioni immediate (come leggere i metadati) e un sistema di eventi per operazioni lunghe, garantendo sempre la migliore esperienza utente.
 
 ---
 
-## Architettura del Progetto
-
-Il progetto segue un'architettura ibrida pulita:
-
-1.  **Frontend (SolidJS)**: Gestisce tutta la UI, lo stato (file selezionati, risultati) e le interazioni dell'utente.
-2.  **Plugin Tauri per i Dialoghi**: La selezione dei file viene gestita chiamando direttamente l'API JavaScript del `tauri-plugin-dialog` dal frontend. Questo è l'approccio più efficiente e raccomandato, che non richiede comandi Rust intermedi.
-3.  **Backend (Rust)**: Il frontend invia la lista dei percorsi dei file selezionati a un singolo comando Rust (`optimize_images`). Rust si occupa del lavoro pesante (aprire, elaborare e salvare le immagini) e restituisce al frontend un array di oggetti strutturati (`OptimizationResult`) con i dati dell'analisi.
+## Stack Tecnologico
+*   **Core**: Tauri v2, Rust
+*   **Frontend**: SolidJS, TypeScript
+*   **Styling**: TailwindCSS, DaisyUI
+*   **Icone**: Solid Icons
 
 ---
 
-## Come Avviare il Progetto
+## Avviare il Progetto
 
 1.  **Installa le dipendenze**:
     ```bash
     bun install
     ```
-2.  **Avvia l'applicazione in modalità sviluppo**:
+2.  **Avvia in modalità sviluppo**:
     ```bash
     bun run tauri dev
     ```
@@ -65,12 +52,6 @@ Il progetto segue un'architettura ibrida pulita:
 ---
 
 ## Prossimi Passi
-
-*   **Miglioramento della UI/UX**: Il nostro prossimo obiettivo.
-    *   Creare un layout più pulito e moderno.
-    *   Implementare il **Drag and Drop** per un caricamento dei file più intuitivo.
-    *   Migliorare la visualizzazione dei risultati, magari con delle anteprime delle immagini.
-*   **Aggiungere Funzionalità Core**:
-    *   Supporto per altri formati (es. WebP in output).
-    *   Opzioni di ottimizzazione configurabili (qualità JPEG, livello di compressione PNG).
-    *   Funzionalità di ridimensionamento (scaling a risoluzioni predefinite come 2k, 4k, ecc.).
+*   Implementazione del **Drag and Drop** per il caricamento dei file.
+*   Aggiunta di formati di output configurabili (es. WebP).
+*   Pannello impostazioni per personalizzare la qualità dell'ottimizzazione.
