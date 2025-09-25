@@ -1,6 +1,10 @@
 # Iron - Image Rust Optimizer
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Rust Version](https://img.shields.io/badge/rust-2024-orange.svg)](https://www.rust-lang.org/)
 ![Status](https://img.shields.io/badge/status-work_in_progress-yellow)
+
+![Iron](screenshot.png)
 
 Una semplice e potente applicazione desktop per ottimizzare le immagini per il web, costruita con Tauri, SolidJS e Rust.
 

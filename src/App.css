@@ -1,39 +1,4 @@
-/* Aggiungi questo alla fine del tuo file src/App.css */
-
-.results-table {
-    width: 100%;
-    margin-top: 2rem;
-    border-collapse: collapse;
-    text-align: left;
-}
-
-.results-table th,
-.results-table td {
-    padding: 8px 12px;
-    border-bottom: 1px solid #444;
-}
-
-.results-table th {
-    font-weight: bold;
-    background-color: #2a2a2a;
-}
-
-.status-message {
-    margin-top: 1rem;
-    font-style: italic;
-}
-
-.error-message {
-    color: #ff6b6b;
-}
-
-.optimize-button {
-    background-color: #4caf50; /* Un bel verde */
-    color: white;
-    margin-left: 10px;
-}
-
-.optimize-button:disabled {
-    background-color: #555;
-    cursor: not-allowed;
+@import "tailwindcss";
+@plugin "daisyui" {
+    themes: business;
 }
