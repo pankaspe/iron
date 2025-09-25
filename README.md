@@ -6,7 +6,7 @@
 [![Rust Version](https://img.shields.io/badge/rust-2024-orange.svg)](https://www.rust-lang.org/)
 ![Status](https://img.shields.io/badge/status-work_in_progress-yellow)
 
-![Iron](screenshot.png)
+![Iron](screenshot2.png)
 
 **Iron** è una moderna applicazione desktop per l'ottimizzazione delle immagini web. Progettata per essere veloce, efficiente e bella da vedere, combina la potenza di Rust per l'elaborazione di backend con la reattività di SolidJS per un'interfaccia utente fluida. Il risultato è un'esperienza nativa e performante.
 
