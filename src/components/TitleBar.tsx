@@ -9,7 +9,10 @@ export function Titlebar() {
     // L'attributo `data-tauri-drag-region` è la chiave per rendere la finestra trascinabile
     <header
       data-tauri-drag-region
-      class="fixed top-0 left-0 right-0 h-12 bg-base-200/80 backdrop-blur-sm flex justify-between items-center px-4 z-50"
+      class="fixed top-0 left-0 right-0 h-12
+             bg-base-100
+             flex justify-between items-center px-4 z-50
+             rounded-tl-[10px] rounded-tr-[10px] overflow-hidden"
     >
       {/* Parte Sinistra (Titolo e Logo, opzionale) */}
       <div class="flex items-center gap-2">

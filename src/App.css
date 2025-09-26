@@ -3,6 +3,12 @@
     themes: business;
 }
 
+html,
+body {
+    border-radius: 10px; /* Arrotonda la finestra */
+    overflow: hidden; /* Taglia quello che esce dai bordi */
+}
+
 /* Aggiungi questa animazione */
 @keyframes fadeIn {
     from {

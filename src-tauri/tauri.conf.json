@@ -14,9 +14,13 @@
     "windows": [
       {
         "title": "iron",
-        "width": 800,
-        "height": 600,
-        "decorations": false
+        "shadow": true,
+        "width": 1000,
+        "height": 800,
+        "center": true,
+        "resizable": true,
+        "decorations": false,
+        "transparent": true
       }
     ],
     "security": {

@@ -106,7 +106,7 @@ function App() {
   }
 
   return (
-    <div class="bg-base-100 min-h-screen rounded-lg flex flex-col">
+    <div class="bg-base-100 flex flex-col w-full h-full rounded-[10px] overflow-hidden">
       <Titlebar />
       <div class="flex-grow flex flex-col p-8 pt-20">
         <header class="flex-shrink-0">
