@@ -9,6 +9,10 @@ body {
     overflow: hidden; /* Taglia quello che esce dai bordi */
 }
 
+:root {
+    border-radius: 10px;
+}
+
 /* Aggiungi questa animazione */
 @keyframes fadeIn {
     from {
