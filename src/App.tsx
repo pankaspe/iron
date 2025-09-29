@@ -7,11 +7,12 @@ import { createStore } from "solid-js/store";
 
 // Componenti e Tipi
 import { Titlebar } from "./components/TitleBar";
-import { ActionButtons } from "./components/ActionButtons";
+import { SidePanel } from "./components/SidePanel";
 import { EmptyState } from "./components/EmptyState";
 import { ProcessingTable, ImageFile } from "./components/ProcessingTable";
 import { PreviewPanel } from "./components/PreviewPanel";
 import { Footer, SystemInfo } from "./components/Footer";
+import { SettingsModal, OptimizationOptions } from "./components/SettingsModal";
 import { FiAlertTriangle } from "solid-icons/fi";
 import "./App.css";
 
@@ -38,6 +39,11 @@ function App() {
   const [previewImagePath, setPreviewImagePath] = createSignal<string | null>(
     null,
   );
+  const [isSettingsOpen, setIsSettingsOpen] = createSignal(false);
+  const [options, setOptions] = createStore<OptimizationOptions>({
+    format: "webp",
+    profile: "balanced",
+  });
 
   onMount(async () => {
     try {
@@ -75,7 +81,7 @@ function App() {
         setFiles(initialFiles);
       }
     } catch (e) {
-      console.error(e);
+      console.error("Failed to open file dialog:", e);
       setErrorMessage("Failed to open file dialog.");
     }
   }
@@ -102,9 +108,12 @@ function App() {
           });
         },
       );
-      await invoke("optimize_images", { paths: files.map((f) => f.path) });
+      await invoke("optimize_images", {
+        paths: files.map((f) => f.path),
+        options: { ...options },
+      });
     } catch (e) {
-      console.error(e);
+      console.error("Optimization failed:", e);
       setErrorMessage(String(e));
     } finally {
       setIsLoading(false);
@@ -113,53 +122,62 @@ function App() {
   }
 
   return (
-    <div class="h-screen bg-base-100 rounded-lg flex flex-col">
+    <div class="h-screen bg-base-100 rounded-lg flex flex-row overflow-hidden">
       <Titlebar />
+      <SettingsModal
+        isOpen={isSettingsOpen()}
+        options={options}
+        setOptions={setOptions}
+        onClose={() => setIsSettingsOpen(false)}
+      />
 
-      <div class="flex-grow flex flex-col p-8 pt-20 overflow-hidden">
-        <header class="flex-shrink-0">
-          <ActionButtons
-            onOpenFile={openFileDialog}
-            onOptimize={handleOptimize}
-            isLoading={isLoading()}
-            fileCount={files.length}
-          />
-          <div class="min-h-16 my-4">
-            <Show when={errorMessage()}>
-              <div role="alert" class="alert alert-error">
-                <FiAlertTriangle class="h-6 w-6" />
-                <span>Error: {errorMessage()}</span>
-              </div>
-            </Show>
-          </div>
-        </header>
+      {/* Pannello Laterale Fisso */}
+      <SidePanel
+        onOpenFile={openFileDialog}
+        onOptimize={handleOptimize}
+        onOpenSettings={() => setIsSettingsOpen(true)}
+        isLoading={isLoading()}
+        fileCount={files.length}
+      />
 
-        {/* FIX: L'area scrollabile ora contiene sia la preview che la tabella */}
-        <main class="flex-grow overflow-y-auto pr-2">
-          {/* Il pannello di preview ora è il PRIMO elemento dell'area scrollabile */}
-          <PreviewPanel
-            path={previewImagePath()}
-            onClose={() => setPreviewImagePath(null)}
-          />
+      {/* Contenitore Principale che occupa il resto dello spazio */}
+      <div class="flex-grow flex flex-col pl-24 pt-12">
+        <div class="flex-grow flex flex-col p-8 overflow-hidden">
+          <header class="flex-shrink-0">
+            <div class="min-h-16 my-4">
+              <Show when={errorMessage()}>
+                <div role="alert" class="alert alert-error">
+                  <FiAlertTriangle class="h-6 w-6" />
+                  <span>Error: {errorMessage()}</span>
+                </div>
+              </Show>
+            </div>
+          </header>
 
-          <Switch>
-            <Match when={files.length > 0}>
-              <ProcessingTable
-                files={files}
-                onRowClick={(path) => setPreviewImagePath(path)}
-                isOptimizing={isLoading()}
-              />
-            </Match>
-            <Match when={true}>
-              <EmptyState />
-            </Match>
-          </Switch>
-        </main>
+          <main class="flex-grow overflow-y-auto pr-2">
+            <PreviewPanel
+              path={previewImagePath()}
+              onClose={() => setPreviewImagePath(null)}
+            />
+            <Switch>
+              <Match when={files.length > 0}>
+                <ProcessingTable
+                  files={files}
+                  onRowClick={(path) => setPreviewImagePath(path)}
+                  isOptimizing={isLoading()}
+                />
+              </Match>
+              <Match when={true}>
+                <EmptyState />
+              </Match>
+            </Switch>
+          </main>
+        </div>
+
+        <footer class="flex-shrink-0">
+          <Footer info={systemInfo()} />
+        </footer>
       </div>
-
-      <footer class="flex-shrink-0">
-        <Footer info={systemInfo()} />
-      </footer>
     </div>
   );
 }

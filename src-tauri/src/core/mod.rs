@@ -1,3 +1,6 @@
+// src-tauri/src/core/mod.rs
 pub mod image_processing;
 pub mod models;
+pub mod settings;
 pub mod system_info;
+pub mod task;
