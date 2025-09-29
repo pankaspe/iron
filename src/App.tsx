@@ -131,7 +131,6 @@ function App() {
         onClose={() => setIsSettingsOpen(false)}
       />
 
-      {/* Pannello Laterale Fisso */}
       <SidePanel
         onOpenFile={openFileDialog}
         onOptimize={handleOptimize}
@@ -141,9 +140,10 @@ function App() {
       />
 
       {/* Contenitore Principale che occupa il resto dello spazio */}
-      <div class="flex-grow flex flex-col pl-24 pt-12">
-        <div class="flex-grow flex flex-col p-8 overflow-hidden">
-          <header class="flex-shrink-0">
+      {/* FIX: Aggiunto pb-8 per fare spazio al footer fisso */}
+      <div class="flex-grow flex flex-col pl-24 pt-12 pb-8">
+        <div class="flex-grow flex flex-col overflow-hidden">
+          <header class="flex-shrink-0 px-8">
             <div class="min-h-16 my-4">
               <Show when={errorMessage()}>
                 <div role="alert" class="alert alert-error">
@@ -154,30 +154,45 @@ function App() {
             </div>
           </header>
 
-          <main class="flex-grow overflow-y-auto pr-2">
-            <PreviewPanel
-              path={previewImagePath()}
-              onClose={() => setPreviewImagePath(null)}
-            />
-            <Switch>
-              <Match when={files.length > 0}>
-                <ProcessingTable
-                  files={files}
-                  onRowClick={(path) => setPreviewImagePath(path)}
-                  isOptimizing={isLoading()}
-                />
-              </Match>
-              <Match when={true}>
-                <EmptyState />
-              </Match>
-            </Switch>
-          </main>
-        </div>
+          {/* FIX: Rimosso il padding da questo contenitore per permettere ai figli di estendersi */}
+          <div class="flex-grow flex flex-col min-h-0">
+            {/* Pannello Anteprima (ora si estende per tutta la larghezza) */}
+            <div
+              class="flex-shrink-0 transition-all duration-300 ease-in-out px-8"
+              classList={{
+                "h-1/3 pb-4": !!previewImagePath(),
+                "h-0 opacity-0": !previewImagePath(),
+              }}
+            >
+              <PreviewPanel
+                path={previewImagePath()}
+                onClose={() => setPreviewImagePath(null)}
+              />
+            </div>
 
-        <footer class="flex-shrink-0">
-          <Footer info={systemInfo()} />
-        </footer>
+            {/* Area Tabella (con il suo padding e scroll) */}
+            <main class="flex-grow overflow-y-auto px-8 pr-10">
+              <Switch>
+                <Match when={files.length > 0}>
+                  <ProcessingTable
+                    files={files}
+                    onRowClick={(path) => setPreviewImagePath(path)}
+                    isOptimizing={isLoading()}
+                  />
+                </Match>
+                <Match when={true}>
+                  <EmptyState />
+                </Match>
+              </Switch>
+            </main>
+          </div>
+        </div>
       </div>
+
+      {/* FIX: Il footer è ora un elemento separato, posizionato in modo fisso */}
+      <footer class="fixed bottom-0 left-0 right-0 z-40">
+        <Footer info={systemInfo()} />
+      </footer>
     </div>
   );
 }

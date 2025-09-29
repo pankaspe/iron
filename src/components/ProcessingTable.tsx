@@ -58,7 +58,7 @@ export function ProcessingTable(props: ProcessingTableProps) {
                       </div>
                     </div>
                   </td>
-                  {/* Colonna Nome e Stato (con loader per riga) */}
+                  {/* Colonna Nome e Stato */}
                   <td class="align-middle">
                     <div class="font-bold truncate">
                       {file.path.split(/[\\/]/).pop()}
@@ -69,7 +69,6 @@ export function ProcessingTable(props: ProcessingTableProps) {
                           <FiCheckCircle /> Optimization complete!
                         </div>
                       </Match>
-                      {/* FIX: Questa è la nuova logica per lo stato di ottimizzazione */}
                       <Match
                         when={props.isOptimizing && file.status === "pending"}
                       >
@@ -77,8 +76,7 @@ export function ProcessingTable(props: ProcessingTableProps) {
                           <span class="text-sm opacity-75 font-semibold">
                             Processing...
                           </span>
-                          {/* La progress bar indeterminata di DaisyUI */}
-                          <progress class="progress progress-primary"></progress>
+                          <progress class="progress progress-success"></progress>
                         </div>
                       </Match>
                       <Match
