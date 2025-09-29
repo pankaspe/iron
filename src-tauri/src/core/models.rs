@@ -1,6 +1,5 @@
 // src-tauri/src/core/models.rs
 use serde::Serialize;
-use std::time::{SystemTime, UNIX_EPOCH};
 
 // --- Modelli per la Comunicazione con il Frontend ---
 
