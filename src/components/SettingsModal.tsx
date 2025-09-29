@@ -1,7 +1,8 @@
 // src/components/SettingsModal.tsx
+import { For, Show } from "solid-js";
 import { FiSave, FiSettings, FiPackage, FiSliders } from "solid-icons/fi";
 
-// Definiamo i tipi che rispecchiano quelli di Rust in camelCase
+// --- Tipi (invariati) ---
 export type OutputFormat = "jpeg" | "png" | "webp";
 export type CompressionProfile =
   | "smallestFile"
@@ -14,7 +15,6 @@ export type OptimizationOptions = {
   profile: CompressionProfile;
 };
 
-// Definiamo un tipo corretto per il setter di un Solid Store
 type StoreSetter<T> = (key: keyof T, value: T[keyof T]) => void;
 
 type SettingsModalProps = {
@@ -24,33 +24,63 @@ type SettingsModalProps = {
   onClose: () => void;
 };
 
-export function SettingsModal(props: SettingsModalProps) {
-  // Funzione helper per determinare quando disabilitare l'opzione Lossless
-  const isLosslessDisabled = () => props.options.format === "jpeg";
+// --- 1. Centralizzazione dei Dati ---
+// Definiamo tutte le informazioni per le opzioni in un unico posto.
+// Aggiungere o modificare un'opzione ora significa solo cambiare questo array.
 
-  // Gestisce il cambio di formato, assicurando che il profilo sia sempre valido
+const FORMAT_OPTIONS: { value: OutputFormat; label: string }[] = [
+  { value: "webp", label: "WebP (Recommended)" },
+  { value: "jpeg", label: "JPEG" },
+  { value: "png", label: "PNG" },
+];
+
+const PROFILE_OPTIONS: {
+  value: CompressionProfile;
+  label: string;
+  description: string;
+  // La logica per disabilitare un'opzione è ora legata ai dati stessi
+  disabled: (format: OutputFormat) => boolean;
+}[] = [
+  {
+    value: "smallestFile",
+    label: "Smallest",
+    description: "Aggressive compression for the smallest file size.",
+    disabled: () => false,
+  },
+  {
+    value: "balanced",
+    label: "Balanced",
+    description: "A good balance between quality and size. Recommended.",
+    disabled: () => false,
+  },
+  {
+    value: "bestQuality",
+    label: "Quality",
+    description: "Prioritizes visual quality over file size.",
+    disabled: () => false,
+  },
+  {
+    value: "lossless",
+    label: "Lossless",
+    description: "No visual quality loss. (Not available for JPEG)",
+    disabled: (format) => format === "jpeg", // La logica è qui!
+  },
+];
+
+export function SettingsModal(props: SettingsModalProps) {
+  // La logica di gestione rimane la stessa, è molto pulita.
   const handleFormatChange = (newFormat: OutputFormat) => {
     props.setOptions("format", newFormat);
+    // Se il nuovo formato è JPEG e il profilo attuale è lossless (non valido),
+    // imposta un profilo di default valido.
     if (newFormat === "jpeg" && props.options.profile === "lossless") {
-      props.setOptions("profile", "bestQuality"); // Imposta un default valido
+      props.setOptions("profile", "bestQuality");
     }
   };
 
-  // Funzione per mostrare una descrizione dinamica del profilo selezionato
-  const getProfileDescription = () => {
-    switch (props.options.profile) {
-      case "smallestFile":
-        return "Aggressive compression for the smallest file size.";
-      case "balanced":
-        return "A good balance between quality and size. Recommended.";
-      case "bestQuality":
-        return "Prioritizes visual quality over file size.";
-      case "lossless":
-        return "No visual quality loss. (Not available for JPEG)";
-      default:
-        return "";
-    }
-  };
+  // Troviamo la descrizione corrente cercando nel nostro array di dati.
+  const currentProfileDescription = () =>
+    PROFILE_OPTIONS.find((p) => p.value === props.options.profile)?.description;
 
   return (
     <dialog class="modal" classList={{ "modal-open": props.isOpen }}>
@@ -61,7 +91,7 @@ export function SettingsModal(props: SettingsModalProps) {
         </h3>
 
         <div class="flex flex-col gap-y-8">
-          {/* Scelta Formato */}
+          {/* --- 2. Rendering tramite Loop (Formato) --- */}
           <div class="form-control w-full">
             <label class="label">
               <span class="label-text text-lg flex items-center gap-2">
@@ -75,9 +105,11 @@ export function SettingsModal(props: SettingsModalProps) {
                 handleFormatChange(e.currentTarget.value as OutputFormat)
               }
             >
-              <option value="webp">WebP (Recommended)</option>
-              <option value="jpeg">JPEG</option>
-              <option value="png">PNG</option>
+              <For each={FORMAT_OPTIONS}>
+                {(format) => (
+                  <option value={format.value}>{format.label}</option>
+                )}
+              </For>
             </select>
             <label class="label">
               <span class="label-text-alt text-base-content/70">
@@ -86,7 +118,7 @@ export function SettingsModal(props: SettingsModalProps) {
             </label>
           </div>
 
-          {/* Scelta Profilo di Compressione */}
+          {/* --- 3. Rendering tramite Loop (Profilo) --- */}
           <div class="form-control w-full">
             <label class="label">
               <span class="label-text text-lg flex items-center gap-2">
@@ -94,48 +126,27 @@ export function SettingsModal(props: SettingsModalProps) {
               </span>
             </label>
             <div class="join w-full">
-              <button
-                class="join-item btn flex-1"
-                classList={{
-                  "btn-success": props.options.profile === "smallestFile",
-                }}
-                onClick={() => props.setOptions("profile", "smallestFile")}
-              >
-                Smallest
-              </button>
-              <button
-                class="join-item btn flex-1"
-                classList={{
-                  "btn-success": props.options.profile === "balanced",
-                }}
-                onClick={() => props.setOptions("profile", "balanced")}
-              >
-                Balanced
-              </button>
-              <button
-                class="join-item btn flex-1"
-                classList={{
-                  "btn-success": props.options.profile === "bestQuality",
-                }}
-                onClick={() => props.setOptions("profile", "bestQuality")}
-              >
-                Quality
-              </button>
-              <button
-                class="join-item btn flex-1"
-                classList={{
-                  "btn-success": props.options.profile === "lossless",
-                }}
-                disabled={isLosslessDisabled()}
-                onClick={() => props.setOptions("profile", "lossless")}
-              >
-                Lossless
-              </button>
+              <For each={PROFILE_OPTIONS}>
+                {(profile) => (
+                  <button
+                    class="join-item btn flex-1"
+                    classList={{
+                      "btn-success": props.options.profile === profile.value,
+                    }}
+                    disabled={profile.disabled(props.options.format)}
+                    onClick={() => props.setOptions("profile", profile.value)}
+                  >
+                    {profile.label}
+                  </button>
+                )}
+              </For>
             </div>
-            <div class="text-center p-2 mt-2 bg-base-200 rounded-md">
-              <span class="label-text-alt text-success font-semibold">
-                {getProfileDescription()}
-              </span>
+            <div class="text-center p-2 mt-2 bg-base-200 rounded-md h-12 flex items-center justify-center">
+              <Show when={currentProfileDescription()}>
+                <span class="label-text-alt text-success font-semibold">
+                  {currentProfileDescription()}
+                </span>
+              </Show>
             </div>
           </div>
         </div>
@@ -149,7 +160,7 @@ export function SettingsModal(props: SettingsModalProps) {
           </button>
         </div>
       </div>
-      {/* Cliccare sul backdrop chiude il modale */}
+
       <form method="dialog" class="modal-backdrop">
         <button onClick={props.onClose}>close</button>
       </form>

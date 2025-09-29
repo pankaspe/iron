@@ -1,7 +1,8 @@
 // src/components/ProcessingTable.tsx
 import { For, Switch, Match, Show } from "solid-js";
 import { convertFileSrc } from "@tauri-apps/api/core";
-import { FiCheckCircle, FiClock, FiArrowDown } from "solid-icons/fi";
+// NUOVO: Importa l'icona per il bottone di rimozione
+import { FiCheckCircle, FiClock, FiArrowDown, FiX } from "solid-icons/fi";
 
 export type ImageFile = {
   id: string;
@@ -17,11 +18,13 @@ export type ImageFile = {
   };
 };
 
+// --- MODIFICA: Aggiornate le props ---
 type ProcessingTableProps = {
   files: ImageFile[];
   onRowClick: (file: ImageFile) => void;
   selectedFileId: string | null;
-  isOptimizing: boolean; // Solo questo flag ci serve
+  isOptimizing: boolean;
+  onRemoveFile: (id: string) => void; // Aggiunta la funzione per rimuovere
 };
 
 export function ProcessingTable(props: ProcessingTableProps) {
@@ -42,6 +45,8 @@ export function ProcessingTable(props: ProcessingTableProps) {
             <th class="w-32">Last Modified</th>
             <th class="w-32 text-right">Size</th>
             <th class="w-32 text-right">Reduction</th>
+            {/* --- NUOVO: Colonna per le azioni --- */}
+            <th class="w-16 text-center">Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -55,6 +60,7 @@ export function ProcessingTable(props: ProcessingTableProps) {
                 }}
                 onClick={() => !props.isOptimizing && props.onRowClick(file)}
               >
+                {/* ... (tutte le altre <td> restano invariate) ... */}
                 <td>
                   <div class="avatar">
                     <div class="mask mask-squircle w-10 h-10 bg-base-200">
@@ -67,12 +73,10 @@ export function ProcessingTable(props: ProcessingTableProps) {
                     </div>
                   </div>
                 </td>
-
                 <td class="align-middle">
                   <div class="font-bold truncate" title={file.path}>
                     {file.path.split(/[\\/]/).pop()}
                   </div>
-                  {/* --- LOGICA DI STATO CORRETTA PER PROCESSO PARALLELO --- */}
                   <Switch>
                     <Match when={file.status === "done"}>
                       <div class="text-xs text-success flex items-center gap-1">
@@ -82,30 +86,25 @@ export function ProcessingTable(props: ProcessingTableProps) {
                     <Match
                       when={props.isOptimizing && file.status === "pending"}
                     >
-                      {/* Se l'ottimizzazione è attiva E questo file non ha finito, mostra la barra */}
                       <div class="flex flex-col gap-1 pt-1">
                         <span class="text-xs opacity-75 font-semibold">
                           Processing...
                         </span>
-                        {/* Usiamo 'progress-success' per il colore verde come richiesto */}
                         <progress class="progress progress-success w-full"></progress>
                       </div>
                     </Match>
                     <Match
                       when={!props.isOptimizing && file.status === "pending"}
                     >
-                      {/* Se non stiamo ottimizzando E il file è in attesa */}
                       <div class="text-xs opacity-50 flex items-center gap-1">
                         <FiClock /> Waiting for optimization...
                       </div>
                     </Match>
                   </Switch>
                 </td>
-
                 <td class="align-middle text-xs opacity-80">
                   {formatDate(file.last_modified)}
                 </td>
-
                 <td class="align-middle text-right">
                   <Switch>
                     <Match when={file.result}>
@@ -125,7 +124,6 @@ export function ProcessingTable(props: ProcessingTableProps) {
                     </Match>
                   </Switch>
                 </td>
-
                 <td class="align-middle text-right">
                   <Show when={file.result}>
                     <div class="badge badge-success font-bold text-xs">
@@ -133,6 +131,21 @@ export function ProcessingTable(props: ProcessingTableProps) {
                       {file.result!.reduction_percentage.toFixed(1)}%
                     </div>
                   </Show>
+                </td>
+
+                {/* --- NUOVO: Cella per il bottone di rimozione --- */}
+                <td class="align-middle text-center">
+                  <button
+                    class="btn btn-ghost btn-xs btn-circle"
+                    disabled={props.isOptimizing}
+                    onClick={(e) => {
+                      e.stopPropagation(); // Previene l'attivazione del click sulla riga
+                      props.onRemoveFile(file.id);
+                    }}
+                    title="Remove file"
+                  >
+                    <FiX class="h-4 w-4" />
+                  </button>
                 </td>
               </tr>
             )}

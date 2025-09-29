@@ -13,7 +13,7 @@ export function SidePanel(props: SidePanelProps) {
   return (
     // --- CORREZIONE CHIAVE ---
     // Rimosso h-full, aggiunto bottom-0. Ora si estende da top-10 al fondo del contenitore.
-    <aside class="fixed top-10 left-0 bottom-0 w-24 bg-base-200 flex flex-col items-center justify-between py-4 border-r border-base-300">
+    <aside class="fixed top-10 left-0 bottom-0 w-24 bg-base-200 flex flex-col items-center justify-between py-4 border-r border-base-300  rounded-lg">
       <div class="flex flex-col gap-4">
         <button
           class="btn btn-ghost btn-square flex-col h-20"

@@ -1,5 +1,12 @@
 // src/App.tsx
-import { createSignal, Show, Switch, Match, onMount } from "solid-js";
+import {
+  createSignal,
+  Show,
+  Switch,
+  Match,
+  onMount,
+  onCleanup,
+} from "solid-js";
 import { open } from "@tauri-apps/plugin-dialog";
 import { invoke } from "@tauri-apps/api/core";
 import { listen, UnlistenFn } from "@tauri-apps/api/event";
@@ -8,7 +15,7 @@ import { createStore } from "solid-js/store";
 // Componenti e Tipi
 import { Titlebar } from "./components/TitleBar";
 import { SidePanel } from "./components/SidePanel";
-import { EmptyState } from "./components/EmptyState";
+import { PersistentDropZone } from "./components/PersistentDropZone";
 import { ProcessingTable, ImageFile } from "./components/ProcessingTable";
 import { PreviewPanel } from "./components/PreviewPanel";
 import { Footer, SystemInfo } from "./components/Footer";
@@ -51,43 +58,83 @@ function App() {
     format: "webp",
     profile: "balanced",
   });
-
   const [progress, setProgress] = createStore({ current: 0, total: 0 });
   const [elapsedTime, setElapsedTime] = createSignal(0);
 
-  onMount(async () => {
-    try {
-      const info = await invoke<SystemInfo>("get_system_info");
-      setSystemInfo(info);
-    } catch (e) {
-      console.error("Failed to get system info:", e);
-    }
+  onMount(() => {
+    const preventDefault = (e: Event) => e.preventDefault();
+    let unlistenDrop: UnlistenFn | undefined;
+
+    onCleanup(() => {
+      window.removeEventListener("dragover", preventDefault);
+      window.removeEventListener("drop", preventDefault);
+      if (unlistenDrop) {
+        unlistenDrop();
+      }
+    });
+
+    const setupAsyncListeners = async () => {
+      window.addEventListener("dragover", preventDefault);
+      window.addEventListener("drop", preventDefault);
+
+      // Definiamo il tipo del payload per chiarezza e sicurezza
+      type DropPayload = {
+        paths: string[];
+        position: { x: number; y: number };
+      };
+
+      unlistenDrop = await listen<DropPayload>("tauri://drag-drop", (event) => {
+        console.log("Drag-drop event received!", event.payload);
+        // Passiamo event.payload.paths, che è l'array di stringhe
+        handleNewFiles(event.payload.paths);
+      });
+
+      try {
+        const info = await invoke<SystemInfo>("get_system_info");
+        setSystemInfo(info);
+      } catch (e) {
+        console.error("Failed to get system info:", e);
+      }
+    };
+
+    setupAsyncListeners();
   });
+
+  async function handleNewFiles(paths: string[]) {
+    if (!paths || paths.length === 0) return;
+    try {
+      const currentPaths = new Set(files.map((f) => f.path));
+      const uniqueNewPaths = paths.filter((p) => !currentPaths.has(p));
+      if (uniqueNewPaths.length === 0) return;
+
+      const infos = await invoke<ImageInfo[]>("get_image_metadata", {
+        paths: uniqueNewPaths,
+      });
+      const newFiles: ImageFile[] = infos.map((info) => ({
+        ...info,
+        id: info.path,
+        status: "pending" as const,
+      }));
+
+      setFiles((currentFiles) => [...currentFiles, ...newFiles]);
+    } catch (e) {
+      console.error("Failed to process new files:", e);
+      setErrorMessage("Failed to read some of the provided files.");
+    }
+  }
 
   async function openFileDialog(multiple: boolean) {
     try {
-      setFiles([]);
-      setErrorMessage(null);
-      setSelectedFileForPreview(null);
       const selectedPaths = await open({
         multiple,
         directory: false,
         filters: [{ name: "Web Images", extensions: ["jpg", "jpeg", "png"] }],
       });
-
       if (selectedPaths) {
         const paths = Array.isArray(selectedPaths)
           ? selectedPaths
           : [selectedPaths];
-        const infos = await invoke<ImageInfo[]>("get_image_metadata", {
-          paths,
-        });
-        const initialFiles: ImageFile[] = infos.map((info) => ({
-          ...info,
-          id: info.path,
-          status: "pending" as const,
-        }));
-        setFiles(initialFiles);
+        await handleNewFiles(paths);
       }
     } catch (e) {
       console.error("Failed to open file dialog:", e);
@@ -95,9 +142,17 @@ function App() {
     }
   }
 
+  function removeFile(idToRemove: string) {
+    setFiles((currentFiles) =>
+      currentFiles.filter((file) => file.id !== idToRemove),
+    );
+    if (selectedFileForPreview()?.id === idToRemove) {
+      setSelectedFileForPreview(null);
+    }
+  }
+
   async function handleOptimize() {
     if (files.length === 0) return;
-
     setIsLoading(true);
     setErrorMessage(null);
     setSelectedFileForPreview(null);
@@ -120,7 +175,6 @@ function App() {
             current: event.payload.current,
             total: event.payload.total,
           });
-
           setFiles((f) => f.id === res.original_path, {
             status: "done",
             result: {
@@ -155,9 +209,8 @@ function App() {
         setOptions={setOptions}
         onClose={() => setIsSettingsOpen(false)}
       />
-
       <SidePanel
-        onOpenFile={openFileDialog}
+        onOpenFile={() => openFileDialog(true)}
         onOptimize={handleOptimize}
         onOpenSettings={() => setIsSettingsOpen(true)}
         isLoading={isLoading()}
@@ -174,7 +227,6 @@ function App() {
                   <span>{errorMessage()}</span>
                 </div>
               </Show>
-
               <Show when={isLoading()}>
                 <OptimizationHeader
                   progress={progress}
@@ -182,7 +234,6 @@ function App() {
                 />
               </Show>
             </header>
-
             <Switch>
               <Match when={files.length > 0}>
                 <ProcessingTable
@@ -190,14 +241,14 @@ function App() {
                   onRowClick={(file) => setSelectedFileForPreview(file)}
                   selectedFileId={selectedFileForPreview()?.id ?? null}
                   isOptimizing={isLoading()}
+                  onRemoveFile={removeFile}
                 />
               </Match>
               <Match when={true}>
-                <EmptyState />
+                <PersistentDropZone onOpenFile={() => openFileDialog(true)} />
               </Match>
             </Switch>
           </main>
-
           <aside class="w-1/2 flex-shrink-0">
             <Show
               when={selectedFileForPreview()}
@@ -214,7 +265,6 @@ function App() {
             </Show>
           </aside>
         </div>
-
         <footer class="flex-shrink-0 border-t border-base-300">
           <Footer info={systemInfo()} />
         </footer>
