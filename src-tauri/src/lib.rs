@@ -3,6 +3,7 @@
 pub mod core;
 
 use crate::core::image_processing::{get_image_metadata, optimize_images};
+use crate::core::system_info::get_system_info;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -10,7 +11,8 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init()) // <-- GIUSTO: Usa il plugin corretto
         .invoke_handler(tauri::generate_handler![
             get_image_metadata,
-            optimize_images
+            optimize_images,
+            get_system_info
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
