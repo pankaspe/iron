@@ -1,26 +1,44 @@
 # Iron - Image Rust Optimizer
 
-![Status](https://img.shields.io/badge/status-work_in_progress-yellow)
+![Status](https://img.shields.io/badge/status-production_ready_core-brightgreen)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Rust Version](https://img.shields.io/badge/rust-2024-orange.svg)](https://www.rust-lang.org/)
+[![Rust Version](https://img.shields.io/badge/rust-2021_edition-orange.svg)](https://www.rust-lang.org/)
 
 ![Iron](screenshot.png)
 
-**Iron** è un'app desktop cross-platform per ottimizzare immagini web, scritta in **Rust** (backend) e **SolidJS** (frontend) con **Tauri**.
+**Iron** è un'applicazione desktop cross-platform ad alte prestazioni per l'ottimizzazione di immagini web. Sviluppata con un backend in **Rust** e un frontend reattivo in **SolidJS**, è costruita su **Tauri** per offrire un'esperienza nativa, sicura e incredibilmente veloce.
 
 ---
-## Stack
+
+## Architettura e Performance
+
+Il core di Iron è progettato per la massima efficienza e scalabilità, sfruttando pattern avanzati di concorrenza e parallelismo nativi di Rust.
+
+### Parallelismo Hardware-Adaptive con Rayon
+
+L'algoritmo di ottimizzazione non è semplicemente concorrente, ma si adatta dinamicamente all'hardware sottostante.
+- **Work-Stealing Scheduler**: Invece di un approccio sequenziale o basato su chunk rigidi, Iron utilizza l'iteratore parallelo (`par_iter`) di **Rayon**. Questo implementa un efficiente scheduler basato su *work-stealing*, dove un pool di thread, la cui dimensione è determinata dal numero di core logici della CPU, attinge dinamicamente a una coda di task globale. Non appena un core termina un'operazione, "ruba" il task successivo disponibile, garantendo un'utilizzazione della CPU vicina al 100% e massimizzando il throughput.
+- **Gestione della Memoria Intelligente**: Il parallelismo è intrinsecamente limitato dal numero di core. Questo previene i *memory bottleneck*, poiché il numero di immagini decompresse simultaneamente in RAM non supera mai il numero di thread di lavoro, rendendo l'applicazione robusta anche con batch massivi di immagini ad alta risoluzione.
+
+### Core Asincrono Non-Bloccante
+
+L'intera operazione di elaborazione pesante viene eseguita su un thread pool dedicato (`spawn_blocking`), isolandola dal runtime asincrono di Tauri.
+- **Zero Blocchi sulla UI**: Il thread principale non viene mai bloccato.
+- **Comunicazione via Eventi**: Il backend Rust comunica lo stato di avanzamento al frontend tramite eventi asincroni. Un contatore atomico (`AtomicUsize`) garantisce la consistenza del progresso anche in un contesto altamente parallelo, fornendo un feedback in tempo reale alla UI senza race condition e con overhead minimo.
+
+---
+
+## Stack Tecnologico
 - **Core** → Rust + Tauri v2
+- **Backend Concurrency** → Rayon, Tokio
 - **Frontend** → SolidJS + TypeScript
+- **Styling** → TailwindCSS + DaisyUI
 
 ---
 
-## TODO
+## Roadmap e Prossimi Sviluppi
 
-- **Refactoring dell'algoritmo con Rayon**:
-  L’attuale ottimizzazione procede in modo sequenziale, elaborando un file alla volta e notificando i progressi alla UI. Con **Rayon** l’intero flusso diventa realmente concorrente: tramite `par_iter` ogni immagine viene processata in un worker dedicato, sfruttando al massimo i core disponibili. Un contatore atomico tiene traccia dello stato globale e invia eventi al frontend quasi in tempo reale, senza bloccare il thread principale. Il risultato è un sistema altamente scalabile, capace di gestire batch massivi di immagini con throughput costante. In Rust questo approccio è naturale: sicurezza sui dati, zero race condition, prestazioni native.
-
-- **Preview istantanea**:
-  Le anteprime delle immagini vengono generate istantaneamente grazie a un sistema di caching in memoria e pipeline asincrona. La UI si aggiorna senza blocchi, mostrando in tempo reale la qualità, la dimensione e i metadati delle immagini, consentendo agli utenti di valutare rapidamente l’effetto dell’ottimizzazione prima dell’export.
-
-- **Export as**: esportazione in formati web-ready (WebP, AVIF, SVG ottimizzato), compressione configurabile e output diretto in cartelle target.
+- **Export Avanzato**: Implementazione dell'esportazione in formati web-ready (WebP, AVIF), con compressione configurabile e output diretto in cartelle target.
+- **Drag and Drop**: Aggiunta di un'area di drop per un caricamento dei file più intuitivo.
+- **Pannello Impostazioni**: Interfaccia per configurare la qualità JPEG, il livello di compressione PNG e altre opzioni di elaborazione.
+- **Caching delle Anteprime**: Sviluppo di un sistema di caching per una rigenerazione istantanea delle anteprime.
