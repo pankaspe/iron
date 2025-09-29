@@ -3,7 +3,7 @@ import { For, Switch, Match, Show } from "solid-js";
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { FiCheckCircle, FiClock, FiArrowDown } from "solid-icons/fi";
 
-// Definiamo un tipo che rappresenti un file in ogni suo stato possibile
+// Tipo che definisce un file in ogni suo stato possibile
 export type ImageFile = {
   id: string; // Il percorso originale, usato come chiave unica
   path: string;
@@ -19,20 +19,21 @@ export type ImageFile = {
 
 type ProcessingTableProps = {
   files: ImageFile[];
-  onRowClick: (path: string) => void; // <-- Aggiungi questo prop
+  onRowClick: (path: string) => void;
+  isOptimizing: boolean; // Flag per sapere se l'ottimizzazione è in corso
 };
 
 export function ProcessingTable(props: ProcessingTableProps) {
   return (
     <div class="animate-fade-in">
       <div class="overflow-x-auto">
-        <table class="table w-full">
+        <table class="table table-fixed w-full">
           <thead>
             <tr>
-              <th class="w-20">Preview</th>
+              <th class="w-24">Preview</th>
               <th>File Status</th>
-              <th class="text-right">Size</th>
-              <th class="text-right">Reduction</th>
+              <th class="w-40 text-right">Size</th>
+              <th class="w-40 text-right">Reduction</th>
             </tr>
           </thead>
           <tbody>
@@ -57,20 +58,30 @@ export function ProcessingTable(props: ProcessingTableProps) {
                       </div>
                     </div>
                   </td>
-                  {/* Colonna Nome e Stato */}
+                  {/* Colonna Nome e Stato (con loader per riga) */}
                   <td class="align-middle">
-                    <div class="font-bold">
+                    <div class="font-bold truncate">
                       {file.path.split(/[\\/]/).pop()}
                     </div>
                     <Switch>
-                      <Match when={file.status === "pending"}>
-                        <div class="text-sm opacity-50 flex items-center gap-1">
-                          <FiClock /> Waiting for optimization...
-                        </div>
-                      </Match>
                       <Match when={file.status === "done"}>
                         <div class="text-sm text-success flex items-center gap-1">
                           <FiCheckCircle /> Optimization complete!
+                        </div>
+                      </Match>
+                      <Match
+                        when={props.isOptimizing && file.status === "pending"}
+                      >
+                        <div class="text-sm opacity-50 flex items-center gap-1">
+                          <span class="loading loading-spinner loading-xs"></span>
+                          Optimizing...
+                        </div>
+                      </Match>
+                      <Match
+                        when={!props.isOptimizing && file.status === "pending"}
+                      >
+                        <div class="text-sm opacity-50 flex items-center gap-1">
+                          <FiClock /> Waiting for optimization...
                         </div>
                       </Match>
                     </Switch>
