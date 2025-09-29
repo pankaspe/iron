@@ -8,6 +8,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
+use std::time::{SystemTime, UNIX_EPOCH};
 use tauri::{AppHandle, Emitter};
 
 // --- Comandi Tauri ---
@@ -19,9 +20,34 @@ pub fn get_image_metadata(paths: Vec<String>) -> Result<Vec<ImageInfo>, String> 
         .map(|p_str| {
             let path = Path::new(&p_str);
             let metadata = fs::metadata(path).map_err(|e| e.to_string())?;
+
+            // --- LOGICA CORRETTA PER IL MIMETYPE ---
+            // 1. `infer::get_from_path` restituisce un Result che potrebbe contenere un Option.
+            //    Gestiamo prima il Result con `map_err`. Se va a buon fine, otteniamo un Option.
+            let maybe_type = infer::get_from_path(&p_str)
+                .map_err(|e| format!("Could not read file for type inference: {}", e))?;
+
+            // 2. Ora che abbiamo un `Option<Type>`, usiamo `map_or` per gestire entrambi i casi:
+            //    - Se è `None` (tipo non riconosciuto), usiamo un valore di default.
+            //    - Se è `Some(t)`, chiamiamo `t.mime_type()` sul valore interno `t`.
+            let mimetype = maybe_type.map_or(
+                "application/octet-stream".to_string(), // Valore di default se None
+                |t| t.mime_type().to_string(),          // Funzione da eseguire se Some
+            );
+            // --- FINE LOGICA CORRETTA ---
+
+            let last_modified = metadata
+                .modified()
+                .map_err(|e| e.to_string())?
+                .duration_since(UNIX_EPOCH)
+                .map_err(|e| e.to_string())?
+                .as_secs();
+
             Ok(ImageInfo {
                 path: p_str,
                 size_kb: metadata.len() as f64 / 1024.0,
+                mimetype,
+                last_modified,
             })
         })
         .collect()

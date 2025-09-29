@@ -3,14 +3,14 @@ import { For, Switch, Match, Show } from "solid-js";
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { FiCheckCircle, FiClock, FiArrowDown } from "solid-icons/fi";
 
-// Tipo che definisce un file in ogni suo stato possibile
 export type ImageFile = {
-  id: string; // Il percorso originale, usato come chiave unica
+  id: string;
   path: string;
   size_kb: number;
+  mimetype: string;
+  last_modified: number;
   status: "pending" | "done";
   result?: {
-    // I risultati vengono aggiunti quando lo stato è 'done'
     optimized_path: string;
     optimized_size_kb: number;
     reduction_percentage: number;
@@ -19,110 +19,126 @@ export type ImageFile = {
 
 type ProcessingTableProps = {
   files: ImageFile[];
-  onRowClick: (path: string) => void;
-  isOptimizing: boolean; // Flag per sapere se l'ottimizzazione è in corso
+  onRowClick: (file: ImageFile) => void;
+  selectedFileId: string | null;
+  isOptimizing: boolean; // Solo questo flag ci serve
 };
 
 export function ProcessingTable(props: ProcessingTableProps) {
+  const formatDate = (timestamp: number) => {
+    return new Date(timestamp * 1000).toLocaleString(undefined, {
+      dateStyle: "short",
+      timeStyle: "short",
+    });
+  };
+
   return (
-    <div class="animate-fade-in">
-      <div class="overflow-x-auto">
-        <table class="table table-fixed w-full">
-          <thead>
-            <tr>
-              <th class="w-24">Preview</th>
-              <th>File Status</th>
-              <th class="w-40 text-right">Size</th>
-              <th class="w-40 text-right">Reduction</th>
-            </tr>
-          </thead>
-          <tbody>
-            <For each={props.files}>
-              {(file) => (
-                <tr
-                  class="hover cursor-pointer"
-                  onClick={() =>
-                    props.onRowClick(file.result?.optimized_path ?? file.path)
-                  }
-                >
-                  {/* Colonna Anteprima */}
-                  <td>
-                    <div class="avatar">
-                      <div class="mask mask-squircle w-16 h-16 bg-base-200">
-                        <img
-                          src={convertFileSrc(
-                            file.result?.optimized_path ?? file.path,
-                          )}
-                          alt="Preview"
-                        />
+    <div class="animate-fade-in h-full overflow-y-auto">
+      <table class="table table-sm table-fixed w-full">
+        <thead>
+          <tr>
+            <th class="w-16"></th>
+            <th>File Info</th>
+            <th class="w-32">Last Modified</th>
+            <th class="w-32 text-right">Size</th>
+            <th class="w-32 text-right">Reduction</th>
+          </tr>
+        </thead>
+        <tbody>
+          <For each={props.files}>
+            {(file) => (
+              <tr
+                class="hover"
+                classList={{
+                  "cursor-pointer": !props.isOptimizing,
+                  active: props.selectedFileId === file.id,
+                }}
+                onClick={() => !props.isOptimizing && props.onRowClick(file)}
+              >
+                <td>
+                  <div class="avatar">
+                    <div class="mask mask-squircle w-10 h-10 bg-base-200">
+                      <img
+                        src={convertFileSrc(
+                          file.result?.optimized_path ?? file.path,
+                        )}
+                        alt="Preview"
+                      />
+                    </div>
+                  </div>
+                </td>
+
+                <td class="align-middle">
+                  <div class="font-bold truncate" title={file.path}>
+                    {file.path.split(/[\\/]/).pop()}
+                  </div>
+                  {/* --- LOGICA DI STATO CORRETTA PER PROCESSO PARALLELO --- */}
+                  <Switch>
+                    <Match when={file.status === "done"}>
+                      <div class="text-xs text-success flex items-center gap-1">
+                        <FiCheckCircle /> Optimization complete!
                       </div>
-                    </div>
-                  </td>
-                  {/* Colonna Nome e Stato */}
-                  <td class="align-middle">
-                    <div class="font-bold truncate">
-                      {file.path.split(/[\\/]/).pop()}
-                    </div>
-                    <Switch>
-                      <Match when={file.status === "done"}>
-                        <div class="text-sm text-success flex items-center gap-1">
-                          <FiCheckCircle /> Optimization complete!
-                        </div>
-                      </Match>
-                      <Match
-                        when={props.isOptimizing && file.status === "pending"}
-                      >
-                        <div class="flex flex-col gap-1 pt-1">
-                          <span class="text-sm opacity-75 font-semibold">
-                            Processing...
-                          </span>
-                          <progress class="progress progress-success"></progress>
-                        </div>
-                      </Match>
-                      <Match
-                        when={!props.isOptimizing && file.status === "pending"}
-                      >
-                        <div class="text-sm opacity-50 flex items-center gap-1">
-                          <FiClock /> Waiting for optimization...
-                        </div>
-                      </Match>
-                    </Switch>
-                  </td>
-                  {/* Colonna Dimensioni */}
-                  <td class="align-middle text-right">
-                    <Switch>
-                      <Match when={file.result}>
-                        <div class="flex flex-col items-end">
-                          <span class="line-through opacity-50">
-                            {file.size_kb.toFixed(2)} KB
-                          </span>
-                          <span class="font-bold">
-                            {file.result!.optimized_size_kb.toFixed(2)} KB
-                          </span>
-                        </div>
-                      </Match>
-                      <Match when={!file.result}>
-                        <span class="font-bold">
-                          {file.size_kb.toFixed(2)} KB
+                    </Match>
+                    <Match
+                      when={props.isOptimizing && file.status === "pending"}
+                    >
+                      {/* Se l'ottimizzazione è attiva E questo file non ha finito, mostra la barra */}
+                      <div class="flex flex-col gap-1 pt-1">
+                        <span class="text-xs opacity-75 font-semibold">
+                          Processing...
                         </span>
-                      </Match>
-                    </Switch>
-                  </td>
-                  {/* Colonna Riduzione */}
-                  <td class="align-middle text-right">
-                    <Show when={file.result}>
-                      <div class="badge badge-lg badge-success font-bold">
-                        <FiArrowDown class="mr-1" />
-                        {file.result!.reduction_percentage.toFixed(2)}%
+                        {/* Usiamo 'progress-success' per il colore verde come richiesto */}
+                        <progress class="progress progress-success w-full"></progress>
                       </div>
-                    </Show>
-                  </td>
-                </tr>
-              )}
-            </For>
-          </tbody>
-        </table>
-      </div>
+                    </Match>
+                    <Match
+                      when={!props.isOptimizing && file.status === "pending"}
+                    >
+                      {/* Se non stiamo ottimizzando E il file è in attesa */}
+                      <div class="text-xs opacity-50 flex items-center gap-1">
+                        <FiClock /> Waiting for optimization...
+                      </div>
+                    </Match>
+                  </Switch>
+                </td>
+
+                <td class="align-middle text-xs opacity-80">
+                  {formatDate(file.last_modified)}
+                </td>
+
+                <td class="align-middle text-right">
+                  <Switch>
+                    <Match when={file.result}>
+                      <div class="flex flex-col items-end">
+                        <span class="text-xs line-through opacity-50">
+                          {file.size_kb.toFixed(1)} KB
+                        </span>
+                        <span class="font-bold text-sm">
+                          {file.result!.optimized_size_kb.toFixed(1)} KB
+                        </span>
+                      </div>
+                    </Match>
+                    <Match when={!file.result}>
+                      <span class="font-bold text-sm">
+                        {file.size_kb.toFixed(1)} KB
+                      </span>
+                    </Match>
+                  </Switch>
+                </td>
+
+                <td class="align-middle text-right">
+                  <Show when={file.result}>
+                    <div class="badge badge-success font-bold text-xs">
+                      <FiArrowDown />
+                      {file.result!.reduction_percentage.toFixed(1)}%
+                    </div>
+                  </Show>
+                </td>
+              </tr>
+            )}
+          </For>
+        </tbody>
+      </table>
     </div>
   );
 }

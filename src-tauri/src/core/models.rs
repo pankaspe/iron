@@ -1,5 +1,6 @@
 // src-tauri/src/core/models.rs
 use serde::Serialize;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 // --- Modelli per la Comunicazione con il Frontend ---
 
@@ -7,6 +8,8 @@ use serde::Serialize;
 pub struct ImageInfo {
     pub path: String,
     pub size_kb: f64,
+    pub mimetype: String,   // <-- NUOVO
+    pub last_modified: u64, // <-- NUOVO (Timestamp UNIX)
 }
 
 #[derive(Clone, Serialize)]

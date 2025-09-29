@@ -2171,6 +2171,7 @@ version = "0.1.0"
 dependencies = [
  "image",
  "imagequant",
+ "infer",
  "num_cpus",
  "oxipng",
  "png 0.18.0",

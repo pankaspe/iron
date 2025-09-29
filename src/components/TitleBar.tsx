@@ -9,10 +9,10 @@ export function Titlebar() {
     // L'attributo `data-tauri-drag-region` è la chiave per rendere la finestra trascinabile
     <header
       data-tauri-drag-region
-      class="fixed top-0 left-0 right-0 h-12
-             bg-base-100
-             flex justify-between items-center px-4 z-50
-             rounded-tl-[10px] rounded-tr-[10px] overflow-hidden"
+      class="fixed top-0 left-0 right-0 h-10
+                   bg-base-100
+                   flex justify-between items-center px-3 z-50
+                   rounded-tl-lg rounded-tr-lg overflow-hidden border-b border-base-300"
     >
       {/* Parte Sinistra (Titolo e Logo, opzionale) */}
       <div class="flex items-center gap-2">
@@ -21,16 +21,16 @@ export function Titlebar() {
       </div>
 
       {/* Parte Destra (Pulsanti di controllo della finestra) */}
-      <div class="flex gap-2">
+      <div class="flex">
         <button
-          class="btn btn-ghost btn-square btn-sm"
+          class="btn btn-ghost btn-square btn-xs"
           onClick={() => appWindow.minimize()}
         >
           {/* Icona Minimizza */}
           <svg
             xmlns="http://www.w3.org/2000/svg"
-            width="24"
-            height="24"
+            width="16"
+            height="16"
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
@@ -42,14 +42,14 @@ export function Titlebar() {
           </svg>
         </button>
         <button
-          class="btn btn-ghost btn-square btn-sm"
+          class="btn btn-ghost btn-square btn-xs hover:btn-error"
           onClick={() => appWindow.toggleMaximize()}
         >
           {/* Icona Massimizza / Ripristina */}
           <svg
             xmlns="http://www.w3.org/2000/svg"
-            width="24"
-            height="24"
+            width="16"
+            height="16"
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
@@ -61,14 +61,14 @@ export function Titlebar() {
           </svg>
         </button>
         <button
-          class="btn btn-ghost btn-square btn-sm hover:btn-error"
+          class="btn btn-ghost btn-square btn-xs hover:btn-error"
           onClick={() => appWindow.close()}
         >
           {/* Icona Chiudi */}
           <svg
             xmlns="http://www.w3.org/2000/svg"
-            width="24"
-            height="24"
+            width="16"
+            height="16"
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"

@@ -1,6 +1,5 @@
 // src/components/SidePanel.tsx
-import { Show } from "solid-js";
-import { FiFilePlus, FiZap, FiSettings } from "solid-icons/fi"; // Rimuoviamo FiFile
+import { FiImage, FiPlay, FiSettings } from "solid-icons/fi";
 
 type SidePanelProps = {
   onOpenFile: (multiple: boolean) => void;
@@ -11,56 +10,41 @@ type SidePanelProps = {
 };
 
 export function SidePanel(props: SidePanelProps) {
-  const hasFiles = () => props.fileCount > 0;
-
   return (
-    <aside class="fixed top-0 left-0 h-screen flex items-center z-40 p-4">
-      <ul class="menu bg-base-200 rounded-box shadow-lg space-y-2">
-        {/* Pulsante Unico per Aggiungere File */}
-        <li>
-          <a
-            class="tooltip tooltip-right"
-            data-tip="Add Images" // Etichetta più generica e chiara
-            onClick={() => props.onOpenFile(true)} // Chiama sempre la modalità multipla
-          >
-            <FiFilePlus class="h-6 w-6" />
-          </a>
-        </li>
+    // --- CORREZIONE CHIAVE ---
+    // Rimosso h-full, aggiunto bottom-0. Ora si estende da top-10 al fondo del contenitore.
+    <aside class="fixed top-10 left-0 bottom-0 w-24 bg-base-200 flex flex-col items-center justify-between py-4 border-r border-base-300">
+      <div class="flex flex-col gap-4">
+        <button
+          class="btn btn-ghost btn-square flex-col h-20"
+          onClick={() => props.onOpenFile(true)}
+          disabled={props.isLoading}
+        >
+          <FiImage class="w-8 h-8" />
+          <span class="text-xs">Open Files</span>
+        </button>
 
-        {/* Separatore */}
-        <li>
-          <div class="menu-title"></div>
-        </li>
+        <button
+          class="btn btn-primary btn-square flex-col h-20"
+          onClick={props.onOptimize}
+          disabled={props.fileCount === 0 || props.isLoading}
+        >
+          {props.isLoading ? (
+            <span class="loading loading-spinner"></span>
+          ) : (
+            <FiPlay class="w-8 h-8" />
+          )}
+          <span class="text-xs">Run</span>
+        </button>
+      </div>
 
-        {/* Pulsante Ottimizza (con stato) */}
-        <li classList={{ disabled: !hasFiles() || props.isLoading }}>
-          <a
-            class="tooltip tooltip-right"
-            data-tip="Optimize!"
-            onClick={props.onOptimize}
-          >
-            <Show when={props.isLoading} fallback={<FiZap class="h-6 w-6" />}>
-              <span class="loading loading-spinner"></span>
-            </Show>
-          </a>
-        </li>
-
-        {/* Separatore */}
-        <li>
-          <div class="menu-title"></div>
-        </li>
-
-        {/* Pulsante Impostazioni */}
-        <li classList={{ disabled: props.isLoading }}>
-          <a
-            class="tooltip tooltip-right"
-            data-tip="Settings"
-            onClick={props.onOpenSettings}
-          >
-            <FiSettings class="h-6 w-6" />
-          </a>
-        </li>
-      </ul>
+      <button
+        class="btn btn-ghost btn-square"
+        onClick={props.onOpenSettings}
+        disabled={props.isLoading}
+      >
+        <FiSettings class="w-6 h-6" />
+      </button>
     </aside>
   );
 }
