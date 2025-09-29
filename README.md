@@ -4,7 +4,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Rust Version](https://img.shields.io/badge/rust-2021_edition-orange.svg)](https://www.rust-lang.org/)
 
-![Iron](screenshot.png)
+![Iron](screenshot2.png)
 
 **Iron** è un'applicazione desktop cross-platform ad alte prestazioni per l'ottimizzazione di immagini web. Sviluppata con un backend in **Rust** e un frontend reattivo in **SolidJS**, è costruita su **Tauri** per offrire un'esperienza nativa, sicura e incredibilmente veloce.
 

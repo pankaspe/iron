@@ -69,12 +69,16 @@ export function ProcessingTable(props: ProcessingTableProps) {
                           <FiCheckCircle /> Optimization complete!
                         </div>
                       </Match>
+                      {/* FIX: Questa è la nuova logica per lo stato di ottimizzazione */}
                       <Match
                         when={props.isOptimizing && file.status === "pending"}
                       >
-                        <div class="text-sm opacity-50 flex items-center gap-1">
-                          <span class="loading loading-spinner loading-xs"></span>
-                          Optimizing...
+                        <div class="flex flex-col gap-1 pt-1">
+                          <span class="text-sm opacity-75 font-semibold">
+                            Processing...
+                          </span>
+                          {/* La progress bar indeterminata di DaisyUI */}
+                          <progress class="progress progress-primary"></progress>
                         </div>
                       </Match>
                       <Match
