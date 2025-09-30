@@ -7,7 +7,10 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Rust Version](https://img.shields.io/badge/rust-2021_edition-orange.svg)](https://www.rust-lang.org/)
 
+#### Main interface
 ![Iron](screenshot.png)
+
+#### Settings interface
 ![Iron](screenshot2.png)
 
 ---
