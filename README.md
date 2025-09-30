@@ -19,10 +19,10 @@
 
 ## ✨ Planned Features
 
-* **Smart Image Resizing** – presets (4K, 2K, Full HD, HD, SD) with aspect ratio preservation [Done]
-* **Multi-Format Export** – WebP, JPEG, PNG with configurable compression profiles [Done]
-* **Parallel Processing** – powered by Rayon’s work-stealing scheduler [Done]
-* **Real-Time Preview** – before/after comparison with live statistics [Done]
+* ✅ **Smart Image Resizing** – presets (4K, 2K, Full HD, HD, SD) with aspect ratio preservation
+* ✅ **Multi-Format Export** – WebP, JPEG, PNG with configurable compression profiles
+* ✅ **Parallel Processing** – powered by Rayon’s work-stealing scheduler
+* ✅ **Real-Time Preview** – before/after comparison with live statistics
 * **Batch Operations** – process hundreds of images at once
 * **Drag & Drop** – support for files and folders
 * **Cross-Platform** – Windows, macOS, and Linux
