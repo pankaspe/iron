@@ -24,7 +24,7 @@
 * ✅ **Parallel Processing** – powered by Rayon’s work-stealing scheduler
 * ✅ **Real-Time Preview** – before/after comparison with live statistics
 * **Batch Operations** – process hundreds of images at once
-* **Drag & Drop** – support for files and folders
+* ✅ **Drag & Drop** – support for queue batch with multiple files
 * **Cross-Platform** – Windows, macOS, and Linux
 
 ---
