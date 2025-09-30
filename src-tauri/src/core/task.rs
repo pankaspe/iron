@@ -25,6 +25,7 @@ impl ImageTask {
                 reason: "File not found.".to_string(),
             };
         }
+
         let metadata = match fs::metadata(&path) {
             Ok(md) => md,
             Err(e) => {
@@ -34,25 +35,32 @@ impl ImageTask {
                 }
             }
         };
+
         let size_bytes = metadata.len();
-        if size_bytes > 1_000_000_000 {
+
+        // Limite aumentato per TIFF (possono essere molto grandi)
+        if size_bytes > 500_000_000 {
             return Self::Invalid {
                 path,
-                reason: "File exceeds 1GB limit.".to_string(),
+                reason: "File exceeds 500MB limit.".to_string(),
             };
         }
+
         if size_bytes == 0 {
             return Self::Invalid {
                 path,
                 reason: "File is empty.".to_string(),
             };
         }
+
         match ImageFormat::from_path(&path) {
-            Ok(format) if matches!(format, ImageFormat::Png | ImageFormat::Jpeg) => Self::Valid {
-                path,
-                format,
-                size_bytes,
-            },
+            Ok(format) if matches!(format, ImageFormat::Png | ImageFormat::Jpeg | ImageFormat::Tiff) => {
+                Self::Valid {
+                    path,
+                    format,
+                    size_bytes,
+                }
+            }
             Ok(_) => Self::Invalid {
                 path,
                 reason: "Unsupported image format.".to_string(),

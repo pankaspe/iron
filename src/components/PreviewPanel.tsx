@@ -163,7 +163,9 @@ export function PreviewPanel(props: PreviewPanelProps) {
                   <div class="h-full bg-gradient-to-br from-base-300 to-base-200 rounded-xl flex items-center justify-center p-4 shadow-inner border border-base-300 overflow-hidden">
                     <img
                       src={convertFileSrc(
-                        isMouseDown() ? file.path : file.result!.optimized_path,
+                        isMouseDown()
+                          ? file.preview_path || file.path
+                          : file.result!.optimized_path,
                       )}
                       alt="Preview"
                       class="max-w-full max-h-full object-contain rounded-lg shadow-lg transition-opacity duration-150"

@@ -1,6 +1,7 @@
 // src-tauri/src/core/image_processing.rs
 
 use crate::core::color_profile::{self, ColorProfile};
+use crate::core::image_decoder;
 use crate::core::models::{ImageInfo, OptimizationResult, ProgressPayload};
 use crate::core::settings::{self, OptimizationOptions};
 use crate::core::task::ImageTask;
@@ -29,11 +30,11 @@ pub fn get_image_metadata(paths: Vec<String>) -> Result<Vec<ImageInfo>, String> 
             for entry in WalkDir::new(path)
                 .into_iter()
                 .filter_map(Result::ok)
-                .filter(|e| is_supported_image(e.path()))
+                .filter(|e| image_decoder::is_supported_format(e.path()))
             {
                 discovered_files.push(entry.into_path());
             }
-        } else if is_supported_image(path) {
+        } else if image_decoder::is_supported_format(path) {
             discovered_files.push(path.to_path_buf());
         }
     }
@@ -60,6 +61,33 @@ pub fn get_image_metadata(paths: Vec<String>) -> Result<Vec<ImageInfo>, String> 
             let color_profile = color_profile::detect_color_profile(&path);
             let needs_conversion = !color_profile.is_web_safe();
 
+            // Per TIFF, genera un'anteprima JPEG temporanea
+            let preview_path = if mimetype == "image/tiff" {
+                let file_size = metadata.len();
+                match image_decoder::generate_tiff_preview(&path, file_size) {
+                    Ok(preview_bytes) => {
+                        // Salva l'anteprima temporanea
+                        let preview_file = path.with_extension("tiff.preview.jpg");
+                        match fs::write(&preview_file, preview_bytes) {
+                            Ok(_) => {
+                                println!("TIFF preview saved: {}", preview_file.display());
+                                Some(preview_file.to_string_lossy().to_string())
+                            }
+                            Err(e) => {
+                                eprintln!("Failed to save TIFF preview: {}", e);
+                                None
+                            }
+                        }
+                    }
+                    Err(e) => {
+                        eprintln!("Failed to generate TIFF preview: {}", e);
+                        None
+                    }
+                }
+            } else {
+                None
+            };
+
             Ok(ImageInfo {
                 path: p_str,
                 size_kb: metadata.len() as f64 / 1024.0,
@@ -67,6 +95,7 @@ pub fn get_image_metadata(paths: Vec<String>) -> Result<Vec<ImageInfo>, String> 
                 last_modified,
                 color_profile,
                 needs_conversion,
+                preview_path,
             })
         })
         .collect()
@@ -308,16 +337,5 @@ fn encode_webp_fast(
             };
             Some(encoder.encode(quality).to_vec())
         }
-    }
-}
-
-// Funzione helper per verificare se un file è un'immagine supportata
-fn is_supported_image(path: &Path) -> bool {
-    if !path.is_file() {
-        return false;
-    }
-    match path.extension().and_then(|s| s.to_str()) {
-        Some("jpg") | Some("jpeg") | Some("png") => true,
-        _ => false,
     }
 }

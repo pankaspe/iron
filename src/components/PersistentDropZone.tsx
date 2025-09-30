@@ -44,7 +44,7 @@ export function PersistentDropZone(props: PersistentDropZoneProps) {
         {/* Info supportate */}
         <div class="mt-4 flex items-center gap-2 text-sm text-base-content/50">
           <FiImage size={16} />
-          <span>Supports: JPEG, PNG</span>
+          <span>Supports: JPEG, PNG, TIFF</span>
         </div>
       </div>
     </div>

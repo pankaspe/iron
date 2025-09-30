@@ -32,6 +32,7 @@ type ImageInfo = {
   last_modified: number;
   color_profile: ColorProfile;
   needs_conversion: boolean;
+  preview_path?: string; // NUOVO: per anteprime TIFF
 };
 
 type ColorProfile =
@@ -158,7 +159,9 @@ function App() {
       const selectedPaths = await open({
         multiple,
         directory: false,
-        filters: [{ name: "Web Images", extensions: ["jpg", "jpeg", "png"] }],
+        filters: [
+          { name: "Images", extensions: ["jpg", "jpeg", "png", "tif", "tiff"] },
+        ],
       });
       if (selectedPaths) {
         const paths = Array.isArray(selectedPaths)

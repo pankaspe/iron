@@ -9,8 +9,9 @@ pub struct ImageInfo {
     pub size_kb: f64,
     pub mimetype: String,
     pub last_modified: u64,
-    pub color_profile: ColorProfile, // NUOVO
-    pub needs_conversion: bool,      // NUOVO
+    pub color_profile: ColorProfile,
+    pub needs_conversion: bool,
+    pub preview_path: Option<String>, // NUOVO: per anteprime TIFF
 }
 
 #[derive(Clone, Serialize)]
