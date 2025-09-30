@@ -20,6 +20,8 @@
 - **Drag & Drop** - Intuitive file and folder support
 - **Cross-platform** - Windows, macOS, and Linux support
 
+![Iron](screenshot2.png)
+
 ---
 
 ## Architecture & Performance
@@ -60,6 +62,8 @@ The resize system intelligently handles images while preserving quality:
 - **No Upscaling**: Images smaller than the target resolution are left untouched to prevent quality degradation
 - **Fit-to-Size**: Images are scaled to fit within the target dimensions, never cropped
 - **Configurable Presets**: From 4K (3840×2160) down to SD (854×480) with one-click selection
+
+![Iron](screenshot3.png)
 
 ---
 
