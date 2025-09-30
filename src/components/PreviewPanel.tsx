@@ -1,13 +1,24 @@
 // src/components/PreviewPanel.tsx
-import { Show } from "solid-js";
+import { Show, createSignal } from "solid-js";
 import { convertFileSrc } from "@tauri-apps/api/core";
-import { FiX, FiArrowDown, FiImage, FiZap, FiCheck } from "solid-icons/fi";
+import {
+  FiX,
+  FiArrowDown,
+  FiImage,
+  FiZap,
+  FiCheck,
+  FiColumns,
+  FiLayers,
+  FiSquare,
+} from "solid-icons/fi";
 import { ImageFile } from "./ProcessingTable";
 
 type PreviewPanelProps = {
   file: ImageFile | null;
   onClose: () => void;
 };
+
+type ViewMode = "single" | "sideBySide" | "topBottom";
 
 function ImageDisplay(props: {
   label: string;
@@ -16,7 +27,7 @@ function ImageDisplay(props: {
   isAfter?: boolean;
 }) {
   return (
-    <div class="flex-1 flex flex-col gap-3 min-w-0">
+    <div class="flex-1 flex flex-col gap-3 min-w-0 min-h-0">
       <div class="flex justify-between items-center">
         <div class="flex items-center gap-2">
           <FiImage
@@ -39,7 +50,7 @@ function ImageDisplay(props: {
           </span>
         </Show>
       </div>
-      <div class="flex-grow bg-gradient-to-br from-base-300 to-base-200 rounded-xl flex items-center justify-center p-4 shadow-inner border border-base-300">
+      <div class="flex-grow bg-gradient-to-br from-base-300 to-base-200 rounded-xl flex items-center justify-center p-4 shadow-inner border border-base-300 overflow-hidden">
         <img
           src={convertFileSrc(props.path)}
           alt={props.label}
@@ -51,6 +62,38 @@ function ImageDisplay(props: {
 }
 
 export function PreviewPanel(props: PreviewPanelProps) {
+  const [viewMode, setViewMode] = createSignal<ViewMode>("sideBySide");
+  const [isMouseDown, setIsMouseDown] = createSignal(false);
+
+  const cycleViewMode = () => {
+    const modes: ViewMode[] = ["single", "sideBySide", "topBottom"];
+    const currentIndex = modes.indexOf(viewMode());
+    const nextIndex = (currentIndex + 1) % modes.length;
+    setViewMode(modes[nextIndex]);
+  };
+
+  const getViewModeIcon = () => {
+    switch (viewMode()) {
+      case "single":
+        return <FiSquare size={18} />;
+      case "sideBySide":
+        return <FiColumns size={18} />;
+      case "topBottom":
+        return <FiLayers size={18} />;
+    }
+  };
+
+  const getViewModeLabel = () => {
+    switch (viewMode()) {
+      case "single":
+        return "Single (Hold to compare)";
+      case "sideBySide":
+        return "Side by Side";
+      case "topBottom":
+        return "Top & Bottom";
+    }
+  };
+
   return (
     <Show when={props.file} keyed>
       {(file) => (
@@ -67,29 +110,34 @@ export function PreviewPanel(props: PreviewPanelProps) {
                   {file.mimetype}
                 </p>
               </div>
-              <button
-                class="btn btn-ghost btn-circle btn-sm"
-                onClick={props.onClose}
-                title="Close preview"
-              >
-                <FiX size={20} />
-              </button>
+              <div class="flex items-center gap-2">
+                {/* View Mode Switcher */}
+                <div class="tooltip tooltip-left" data-tip={getViewModeLabel()}>
+                  <button
+                    class="btn btn-ghost btn-circle btn-sm"
+                    onClick={cycleViewMode}
+                    title="Change view mode"
+                  >
+                    {getViewModeIcon()}
+                  </button>
+                </div>
+                <button
+                  class="btn btn-ghost btn-circle btn-sm"
+                  onClick={props.onClose}
+                  title="Close preview"
+                >
+                  <FiX size={20} />
+                </button>
+              </div>
             </div>
           </div>
 
-          {/* Comparazione Before/After */}
-          <div class="flex-grow flex flex-row gap-6 min-h-0 px-6">
-            <ImageDisplay
-              label="Original"
-              path={file.path}
-              size_kb={file.size_kb}
-              isAfter={false}
-            />
-
+          {/* Comparazione con modalità diverse */}
+          <div class="flex-grow px-6 min-h-0">
             <Show
               when={file.result}
               fallback={
-                <div class="flex-1 flex flex-col items-center justify-center text-center gap-4 bg-base-200/50 rounded-xl border-2 border-dashed border-base-300">
+                <div class="h-full flex flex-col items-center justify-center text-center gap-4 bg-base-200/50 rounded-xl border-2 border-dashed border-base-300">
                   <FiZap class="text-base-content/30" size={48} />
                   <div>
                     <p class="font-semibold text-lg text-base-content/60">
@@ -102,12 +150,73 @@ export function PreviewPanel(props: PreviewPanelProps) {
                 </div>
               }
             >
-              <ImageDisplay
-                label="Optimized"
-                path={file.result!.optimized_path}
-                size_kb={file.result!.optimized_size_kb}
-                isAfter={true}
-              />
+              {/* Single View - Hold to compare */}
+              <Show when={viewMode() === "single"}>
+                <div
+                  class="h-full relative cursor-pointer select-none"
+                  onMouseDown={() => setIsMouseDown(true)}
+                  onMouseUp={() => setIsMouseDown(false)}
+                  onMouseLeave={() => setIsMouseDown(false)}
+                  onTouchStart={() => setIsMouseDown(true)}
+                  onTouchEnd={() => setIsMouseDown(false)}
+                >
+                  <div class="h-full bg-gradient-to-br from-base-300 to-base-200 rounded-xl flex items-center justify-center p-4 shadow-inner border border-base-300 overflow-hidden">
+                    <img
+                      src={convertFileSrc(
+                        isMouseDown() ? file.path : file.result!.optimized_path,
+                      )}
+                      alt="Preview"
+                      class="max-w-full max-h-full object-contain rounded-lg shadow-lg transition-opacity duration-150"
+                    />
+                  </div>
+                  <div class="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex gap-2">
+                    <div
+                      class={`badge badge-lg ${isMouseDown() ? "badge-primary" : "badge-ghost"}`}
+                    >
+                      {isMouseDown() ? "Original" : "Optimized"}
+                    </div>
+                    <div class="badge badge-lg badge-ghost">
+                      Hold to compare
+                    </div>
+                  </div>
+                </div>
+              </Show>
+
+              {/* Side by Side View */}
+              <Show when={viewMode() === "sideBySide"}>
+                <div class="h-full flex flex-row gap-6">
+                  <ImageDisplay
+                    label="Original"
+                    path={file.path}
+                    size_kb={file.size_kb}
+                    isAfter={false}
+                  />
+                  <ImageDisplay
+                    label="Optimized"
+                    path={file.result!.optimized_path}
+                    size_kb={file.result!.optimized_size_kb}
+                    isAfter={true}
+                  />
+                </div>
+              </Show>
+
+              {/* Top & Bottom View */}
+              <Show when={viewMode() === "topBottom"}>
+                <div class="h-full flex flex-col gap-6">
+                  <ImageDisplay
+                    label="Original"
+                    path={file.path}
+                    size_kb={file.size_kb}
+                    isAfter={false}
+                  />
+                  <ImageDisplay
+                    label="Optimized"
+                    path={file.result!.optimized_path}
+                    size_kb={file.result!.optimized_size_kb}
+                    isAfter={true}
+                  />
+                </div>
+              </Show>
             </Show>
           </div>
 
