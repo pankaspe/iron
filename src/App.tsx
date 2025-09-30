@@ -30,7 +30,17 @@ type ImageInfo = {
   size_kb: number;
   mimetype: string;
   last_modified: number;
+  color_profile: ColorProfile;
+  needs_conversion: boolean;
 };
+
+type ColorProfile =
+  | "srgb"
+  | "adobeRgb"
+  | "displayP3"
+  | "proPhotoRgb"
+  | { unknown: string };
+
 type OptimizationResult = {
   original_path: string;
   optimized_path: string;
@@ -72,6 +82,16 @@ function App() {
 
   const [progress, setProgress] = createStore({ current: 0, total: 0 });
   const [elapsedTime, setElapsedTime] = createSignal(0);
+
+  // Calcola quanti file sono stati completati
+  const completedCount = () => files.filter((f) => f.status === "done").length;
+
+  // Funzione per pulire la coda
+  function handleCleanQueue() {
+    setFiles([]);
+    setSelectedFileForPreview(null);
+    setProgress({ current: 0, total: 0 });
+  }
 
   onMount(() => {
     const preventDefault = (e: Event) => e.preventDefault();
@@ -232,9 +252,11 @@ function App() {
         <SidePanel
           onOpenFile={() => openFileDialog(true)}
           onOptimize={handleOptimize}
+          onCleanQueue={handleCleanQueue}
           onOpenSettings={() => setIsSettingsOpen(true)}
           isLoading={isLoading()}
           fileCount={files.length}
+          completedCount={completedCount()}
         />
 
         <div class="flex-grow flex flex-col pl-24">
