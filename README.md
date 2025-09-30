@@ -1,7 +1,7 @@
 # Iron - Image Rust Optimizer Node
 
 **Iron** is a cross-platform desktop application for optimizing web images, built with a **Rust** backend and a **SolidJS** frontend on top of **Tauri**.
-⚠️ Note: This project is currently in **pre-alpha** and not yet ready for production use.
+⚠️ Important note: This project is currently in **pre-alpha** and not yet ready for production use.
 
 ![Status](https://img.shields.io/badge/status-pre--alpha-red)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
