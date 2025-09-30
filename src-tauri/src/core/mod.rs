@@ -1,4 +1,5 @@
 // src-tauri/src/core/mod.rs
+pub mod color_profile;
 pub mod image_processing;
 pub mod models;
 pub mod settings;

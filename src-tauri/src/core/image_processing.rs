@@ -1,5 +1,6 @@
 // src-tauri/src/core/image_processing.rs
 
+use crate::core::color_profile::{self, ColorProfile};
 use crate::core::models::{ImageInfo, OptimizationResult, ProgressPayload};
 use crate::core::settings::{self, OptimizationOptions};
 use crate::core::task::ImageTask;
@@ -54,11 +55,18 @@ pub fn get_image_metadata(paths: Vec<String>) -> Result<Vec<ImageInfo>, String> 
                 .duration_since(UNIX_EPOCH)
                 .map_err(|e| e.to_string())?
                 .as_secs();
+
+            // Rileva il profilo colore
+            let color_profile = color_profile::detect_color_profile(&path);
+            let needs_conversion = !color_profile.is_web_safe();
+
             Ok(ImageInfo {
                 path: p_str,
                 size_kb: metadata.len() as f64 / 1024.0,
                 mimetype,
                 last_modified,
+                color_profile,
+                needs_conversion,
             })
         })
         .collect()

@@ -1,14 +1,16 @@
 // src-tauri/src/core/models.rs
+use crate::core::color_profile::ColorProfile;
 use serde::Serialize;
 
 // --- Modelli per la Comunicazione con il Frontend ---
-
 #[derive(Clone, Serialize)]
 pub struct ImageInfo {
     pub path: String,
     pub size_kb: f64,
-    pub mimetype: String,   // <-- NUOVO
-    pub last_modified: u64, // <-- NUOVO (Timestamp UNIX)
+    pub mimetype: String,
+    pub last_modified: u64,
+    pub color_profile: ColorProfile, // NUOVO
+    pub needs_conversion: bool,      // NUOVO
 }
 
 #[derive(Clone, Serialize)]
