@@ -33,5 +33,3 @@ pub struct SystemInfo {
     pub total_memory_gb: f64,
     pub os_name: String,
 }
-
-// Nota: ImageTask e le struct delle opzioni sono state spostate per una migliore organizzazione.

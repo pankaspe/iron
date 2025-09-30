@@ -1,6 +1,6 @@
 // src/components/Footer.tsx
 import { Show } from "solid-js";
-import { FiCpu, FiHardDrive, FiTerminal } from "solid-icons/fi";
+import { FiCpu, FiHardDrive, FiTerminal, FiZap } from "solid-icons/fi";
 
 export type SystemInfo = {
   cpu_cores: number;
@@ -14,24 +14,54 @@ type FooterProps = {
 
 export function Footer(props: FooterProps) {
   return (
-    <footer class="bg-base-200 text-base-content p-2 flex justify-between items-center text-xs">
-      <Show when={props.info} fallback={<div>Loading system info...</div>}>
-        <div class="flex items-center gap-4">
-          <div class="flex items-center gap-1" title="Operating System">
-            <FiTerminal />
-            <span>{props.info!.os_name}</span>
+    <footer class="bg-gradient-to-r from-base-200 to-base-300 text-base-content p-4 flex justify-between items-center border-t-2 border-base-300/50">
+      <Show
+        when={props.info}
+        fallback={
+          <div class="flex items-center gap-2 text-sm text-base-content/60">
+            <span class="loading loading-spinner loading-xs"></span>
+            <span>Loading system info...</span>
           </div>
-          <div class="flex items-center gap-1" title="CPU Cores">
-            <FiCpu />
-            <span>{props.info!.cpu_cores} Cores</span>
+        }
+      >
+        <div class="flex items-center gap-6">
+          <div
+            class="flex items-center gap-2 px-3 py-1.5 bg-base-100/50 rounded-lg hover:bg-base-100 transition-colors"
+            title="Operating System"
+          >
+            <FiTerminal class="text-primary" size={16} />
+            <span class="font-semibold text-sm">{props.info!.os_name}</span>
           </div>
-          <div class="flex items-center gap-1" title="Total Memory">
-            <FiHardDrive />
-            <span>{props.info!.total_memory_gb.toFixed(1)} GB RAM</span>
+
+          <div
+            class="flex items-center gap-2 px-3 py-1.5 bg-base-100/50 rounded-lg hover:bg-base-100 transition-colors"
+            title="CPU Cores"
+          >
+            <FiCpu class="text-secondary" size={16} />
+            <span class="font-semibold text-sm">
+              {props.info!.cpu_cores} Cores
+            </span>
+          </div>
+
+          <div
+            class="flex items-center gap-2 px-3 py-1.5 bg-base-100/50 rounded-lg hover:bg-base-100 transition-colors"
+            title="Total Memory"
+          >
+            <FiHardDrive class="text-accent" size={16} />
+            <span class="font-semibold text-sm">
+              {props.info!.total_memory_gb.toFixed(1)} GB RAM
+            </span>
           </div>
         </div>
       </Show>
-      <div class="font-semibold">Iron Optimizer v1.0</div>
+
+      <div class="flex items-center gap-2 px-4 py-1.5 bg-gradient-to-r from-primary/10 to-secondary/10 rounded-lg border border-primary/20">
+        <FiZap class="text-primary" size={16} />
+        <span class="font-bold text-sm bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+          Iron Optimizer
+        </span>
+        <span class="text-xs text-base-content/50 ml-1">v1.0</span>
+      </div>
     </footer>
   );
 }

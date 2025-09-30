@@ -12,6 +12,7 @@ pub enum OutputFormat {
     Png,
     Webp,
 }
+
 #[derive(Clone, Serialize, Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub enum CompressionProfile {
@@ -20,14 +21,100 @@ pub enum CompressionProfile {
     BestQuality,
     Lossless,
 }
+
+#[derive(Clone, Serialize, Deserialize, Debug)]
+#[serde(rename_all = "camelCase")]
+pub enum ResizePreset {
+    None, // Nessun resize
+    #[serde(rename = "uhd4k")]
+    UHD4K, // 3840x2160
+    #[serde(rename = "qhd2k")]
+    QHD2K, // 2560x1440
+    FullHD, // 1920x1080
+    #[serde(rename = "hd")]
+    HD, // 1280x720
+    #[serde(rename = "sd")]
+    SD, // 854x480
+    Custom {
+        width: u32,
+        height: u32,
+    }, // Dimensioni personalizzate
+}
+
+impl ResizePreset {
+    /// Restituisce le dimensioni (larghezza, altezza) del preset
+    pub fn dimensions(&self) -> Option<(u32, u32)> {
+        match self {
+            ResizePreset::None => None,
+            ResizePreset::UHD4K => Some((3840, 2160)),
+            ResizePreset::QHD2K => Some((2560, 1440)),
+            ResizePreset::FullHD => Some((1920, 1080)),
+            ResizePreset::HD => Some((1280, 720)),
+            ResizePreset::SD => Some((854, 480)),
+            ResizePreset::Custom { width, height } => Some((*width, *height)),
+        }
+    }
+
+    /// Calcola le nuove dimensioni mantenendo l'aspect ratio
+    pub fn calculate_resize(
+        &self,
+        original_width: u32,
+        original_height: u32,
+    ) -> Option<(u32, u32)> {
+        let target_dims = self.dimensions()?;
+
+        // Se l'immagine è già più piccola del target, non ridimensionare
+        if original_width <= target_dims.0 && original_height <= target_dims.1 {
+            return None;
+        }
+
+        // Calcola il ratio di ridimensionamento mantenendo l'aspect ratio
+        let width_ratio = target_dims.0 as f32 / original_width as f32;
+        let height_ratio = target_dims.1 as f32 / original_height as f32;
+
+        // Usa il ratio più piccolo per far stare l'immagine nel target
+        let ratio = width_ratio.min(height_ratio);
+
+        let new_width = (original_width as f32 * ratio) as u32;
+        let new_height = (original_height as f32 * ratio) as u32;
+
+        Some((new_width, new_height))
+    }
+}
+
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct OptimizationOptions {
     pub format: OutputFormat,
     pub profile: CompressionProfile,
+    pub resize: ResizePreset,
+}
+
+/// Applica il resize all'immagine se necessario
+pub fn apply_resize(img: &DynamicImage, resize: &ResizePreset) -> DynamicImage {
+    match resize.calculate_resize(img.width(), img.height()) {
+        Some((new_width, new_height)) => {
+            println!(
+                "Resizing from {}x{} to {}x{}",
+                img.width(),
+                img.height(),
+                new_width,
+                new_height
+            );
+            // Usa Lanczos3 per la migliore qualità di ridimensionamento
+            img.resize(new_width, new_height, image::imageops::FilterType::Lanczos3)
+        }
+        None => {
+            println!("No resize needed for {}x{}", img.width(), img.height());
+            img.clone()
+        }
+    }
 }
 
 /// Codifica un'immagine in un buffer di byte secondo le opzioni fornite.
 pub fn encode_image(img: &DynamicImage, options: &OptimizationOptions) -> Option<Vec<u8>> {
+    // Applica il resize se necessario
+    let img = apply_resize(img, &options.resize);
+
     match options.format {
         OutputFormat::Jpeg => {
             let mut buffer = Cursor::new(Vec::new());
@@ -37,7 +124,7 @@ pub fn encode_image(img: &DynamicImage, options: &OptimizationOptions) -> Option
                 CompressionProfile::BestQuality | CompressionProfile::Lossless => 90,
             };
             codecs::jpeg::JpegEncoder::new_with_quality(&mut buffer, quality)
-                .encode_image(img)
+                .encode_image(&img)
                 .ok()?;
             Some(buffer.into_inner())
         }

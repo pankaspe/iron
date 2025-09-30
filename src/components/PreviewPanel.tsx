@@ -1,7 +1,7 @@
 // src/components/PreviewPanel.tsx
 import { Show } from "solid-js";
 import { convertFileSrc } from "@tauri-apps/api/core";
-import { FiX, FiArrowDown } from "solid-icons/fi";
+import { FiX, FiArrowDown, FiImage, FiZap, FiCheck } from "solid-icons/fi";
 import { ImageFile } from "./ProcessingTable";
 
 type PreviewPanelProps = {
@@ -9,29 +9,41 @@ type PreviewPanelProps = {
   onClose: () => void;
 };
 
-// Un semplice componente per visualizzare un'immagine con la sua etichetta
 function ImageDisplay(props: {
   label: string;
   path: string;
   size_kb?: number;
+  isAfter?: boolean;
 }) {
   return (
-    <div class="flex-1 flex flex-col gap-2 min-w-0">
+    <div class="flex-1 flex flex-col gap-3 min-w-0">
       <div class="flex justify-between items-center">
-        <span class="font-bold text-sm uppercase tracking-wider">
-          {props.label}
-        </span>
+        <div class="flex items-center gap-2">
+          <FiImage
+            class={props.isAfter ? "text-success" : "text-primary"}
+            size={18}
+          />
+          <span class="font-bold text-base uppercase tracking-wider">
+            {props.label}
+          </span>
+        </div>
         <Show when={props.size_kb}>
-          <span class="font-mono text-sm badge badge-ghost">
+          <span
+            class="font-mono text-sm badge badge-lg"
+            classList={{
+              "badge-success": props.isAfter,
+              "badge-ghost": !props.isAfter,
+            }}
+          >
             {props.size_kb!.toFixed(1)} KB
           </span>
         </Show>
       </div>
-      <div class="flex-grow bg-black/20 rounded-lg flex items-center justify-center p-2">
+      <div class="flex-grow bg-gradient-to-br from-base-300 to-base-200 rounded-xl flex items-center justify-center p-4 shadow-inner border border-base-300">
         <img
           src={convertFileSrc(props.path)}
           alt={props.label}
-          class="max-w-full max-h-full object-contain"
+          class="max-w-full max-h-full object-contain rounded-lg shadow-lg"
         />
       </div>
     </div>
@@ -42,67 +54,116 @@ export function PreviewPanel(props: PreviewPanelProps) {
   return (
     <Show when={props.file} keyed>
       {(file) => (
-        <div class="bg-base-200 w-full h-full flex flex-col p-4 gap-4 rounded-lg animate-fade-in shadow-lg">
-          {/* Header con nome file e pulsante di chiusura */}
-          <div class="flex-shrink-0 flex justify-between items-center">
-            <h2 class="text-lg font-bold truncate" title={file.path}>
-              {file.path.split(/[\\/]/).pop()}
-            </h2>
-            <button
-              class="btn btn-sm btn-ghost btn-square"
-              onClick={props.onClose}
-            >
-              <FiX />
-            </button>
+        <div class="bg-base-100 w-full h-full flex flex-col gap-6 rounded-xl animate-fade-in shadow-2xl border border-base-300">
+          {/* Header elegante */}
+          <div class="flex-shrink-0 p-6 pb-0">
+            <div class="flex justify-between items-start gap-4">
+              <div class="flex-grow min-w-0">
+                <h2 class="text-2xl font-bold truncate mb-1" title={file.path}>
+                  {file.path.split(/[\\/]/).pop()}
+                </h2>
+                <p class="text-sm text-base-content/60 flex items-center gap-2">
+                  <FiImage size={14} />
+                  {file.mimetype}
+                </p>
+              </div>
+              <button
+                class="btn btn-ghost btn-circle btn-sm"
+                onClick={props.onClose}
+                title="Close preview"
+              >
+                <FiX size={20} />
+              </button>
+            </div>
           </div>
 
           {/* Comparazione Before/After */}
-          <div class="flex-grow flex flex-row gap-4 min-h-0">
+          <div class="flex-grow flex flex-row gap-6 min-h-0 px-6">
             <ImageDisplay
-              label="Before"
+              label="Original"
               path={file.path}
               size_kb={file.size_kb}
+              isAfter={false}
             />
+
             <Show
               when={file.result}
               fallback={
-                <div class="flex-1 flex items-center justify-center text-center text-base-content/50">
-                  <span>Optimize to see the result</span>
+                <div class="flex-1 flex flex-col items-center justify-center text-center gap-4 bg-base-200/50 rounded-xl border-2 border-dashed border-base-300">
+                  <FiZap class="text-base-content/30" size={48} />
+                  <div>
+                    <p class="font-semibold text-lg text-base-content/60">
+                      Not optimized yet
+                    </p>
+                    <p class="text-sm text-base-content/40 mt-1">
+                      Run optimization to see results
+                    </p>
+                  </div>
                 </div>
               }
             >
               <ImageDisplay
-                label="After"
+                label="Optimized"
                 path={file.result!.optimized_path}
                 size_kb={file.result!.optimized_size_kb}
+                isAfter={true}
               />
             </Show>
           </div>
 
-          {/* Statistiche di ottimizzazione */}
+          {/* Statistiche eleganti */}
           <Show when={file.result}>
-            <div class="flex-shrink-0 stats shadow w-full">
-              <div class="stat">
-                <div class="stat-title">Reduction</div>
-                <div class="stat-value text-success">
-                  {(file.size_kb - file.result!.optimized_size_kb).toFixed(1)}{" "}
-                  KB
+            <div class="flex-shrink-0 px-6 pb-6">
+              <div class="bg-gradient-to-r from-success/10 to-success/5 rounded-xl p-4 border border-success/20">
+                <div class="flex items-center gap-2 mb-4">
+                  <FiCheck class="text-success" size={20} />
+                  <span class="font-bold text-success">
+                    Optimization Complete
+                  </span>
                 </div>
-                <div class="stat-desc text-success flex items-center gap-1 font-bold">
-                  <FiArrowDown /> {file.result!.reduction_percentage.toFixed(1)}
-                  %
-                </div>
-              </div>
-              <div class="stat">
-                <div class="stat-title">Original Size</div>
-                <div class="stat-value text-secondary">
-                  {file.size_kb.toFixed(1)} KB
-                </div>
-              </div>
-              <div class="stat">
-                <div class="stat-title">Optimized Size</div>
-                <div class="stat-value">
-                  {file.result!.optimized_size_kb.toFixed(1)} KB
+
+                <div class="grid grid-cols-3 gap-4">
+                  <div class="text-center">
+                    <div class="text-xs text-base-content/60 uppercase tracking-wider mb-1">
+                      Saved
+                    </div>
+                    <div class="text-2xl font-bold text-success flex items-center justify-center gap-1">
+                      <FiArrowDown size={20} />
+                      {(file.size_kb - file.result!.optimized_size_kb).toFixed(
+                        1,
+                      )}
+                      <span class="text-base">KB</span>
+                    </div>
+                    <div class="text-sm font-semibold text-success/80 mt-1">
+                      {file.result!.reduction_percentage.toFixed(1)}% smaller
+                    </div>
+                  </div>
+
+                  <div class="text-center border-l border-r border-base-300 px-2">
+                    <div class="text-xs text-base-content/60 uppercase tracking-wider mb-1">
+                      Original
+                    </div>
+                    <div class="text-2xl font-bold text-base-content/70">
+                      {file.size_kb.toFixed(1)}
+                      <span class="text-base ml-1">KB</span>
+                    </div>
+                    <div class="text-xs text-base-content/50 mt-1">
+                      Starting size
+                    </div>
+                  </div>
+
+                  <div class="text-center">
+                    <div class="text-xs text-base-content/60 uppercase tracking-wider mb-1">
+                      Optimized
+                    </div>
+                    <div class="text-2xl font-bold text-primary">
+                      {file.result!.optimized_size_kb.toFixed(1)}
+                      <span class="text-base ml-1">KB</span>
+                    </div>
+                    <div class="text-xs text-base-content/50 mt-1">
+                      Final size
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>

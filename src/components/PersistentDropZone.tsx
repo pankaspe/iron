@@ -1,5 +1,5 @@
 // src/components/PersistentDropZone.tsx
-import { FiUploadCloud } from "solid-icons/fi";
+import { FiUploadCloud, FiImage, FiFolder } from "solid-icons/fi";
 
 type PersistentDropZoneProps = {
   onOpenFile: () => void;
@@ -7,14 +7,45 @@ type PersistentDropZoneProps = {
 
 export function PersistentDropZone(props: PersistentDropZoneProps) {
   return (
-    <div class="flex h-full w-full items-center justify-center p-4">
-      <div class="flex h-full w-full flex-col items-center justify-center gap-4 rounded-2xl border-2 border-dashed border-base-content/20 bg-base-100/30 text-center transition-colors duration-300 hover:border-success hover:bg-base-200/50">
-        <FiUploadCloud class="h-16 w-16 text-base-content/40" />
-        <h2 class="text-2xl font-bold">Drag & Drop Files Here</h2>
-        <p class="text-base-content/60">or</p>
-        <button class="btn btn-success" onClick={props.onOpenFile}>
+    <div class="flex h-full w-full items-center justify-center p-8">
+      <div class="flex h-full w-full flex-col items-center justify-center gap-8 rounded-3xl border-2 border-dashed border-base-content/20 bg-gradient-to-br from-base-100 to-base-200/50 text-center transition-all duration-300 hover:border-primary hover:bg-base-200/80 hover:shadow-xl">
+        {/* Icona animata */}
+        <div class="relative">
+          <div class="absolute inset-0 bg-primary/20 rounded-full blur-2xl animate-pulse"></div>
+          <FiUploadCloud class="relative h-24 w-24 text-primary drop-shadow-lg" />
+        </div>
+
+        {/* Testo principale */}
+        <div class="space-y-2">
+          <h2 class="text-3xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+            Drop Your Images Here
+          </h2>
+          <p class="text-base-content/60 text-lg">
+            Drag and drop files or folders to get started
+          </p>
+        </div>
+
+        {/* Separatore */}
+        <div class="flex items-center gap-4 w-64">
+          <div class="flex-1 h-px bg-base-content/20"></div>
+          <span class="text-sm text-base-content/40 font-semibold">OR</span>
+          <div class="flex-1 h-px bg-base-content/20"></div>
+        </div>
+
+        {/* Pulsante principale */}
+        <button
+          class="btn btn-primary btn-lg gap-2 shadow-lg hover:shadow-xl transition-all"
+          onClick={props.onOpenFile}
+        >
+          <FiFolder size={20} />
           Browse Files
         </button>
+
+        {/* Info supportate */}
+        <div class="mt-4 flex items-center gap-2 text-sm text-base-content/50">
+          <FiImage size={16} />
+          <span>Supports: JPEG, PNG</span>
+        </div>
       </div>
     </div>
   );

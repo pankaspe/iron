@@ -10,7 +10,7 @@ use std::panic::{self, AssertUnwindSafe};
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 use std::time::UNIX_EPOCH;
-use tauri::{AppHandle, Emitter, Manager};
+use tauri::{AppHandle, Emitter};
 use walkdir::WalkDir;
 
 // --- Comandi Tauri ---
@@ -195,6 +195,9 @@ impl ImageProcessor {
             _ => return None,
         };
 
+        // Applica il resize prima dell'encoding
+        let img = settings::apply_resize(&img, &self.options.resize);
+
         // Genera il percorso di output
         let new_extension = match self.options.format {
             settings::OutputFormat::Jpeg => "jpg",
@@ -210,12 +213,12 @@ impl ImageProcessor {
         let encoded_bytes = match self.options.format {
             settings::OutputFormat::Jpeg => {
                 // Usa turbojpeg per encoding veloce
-                encode_jpeg_fast(&img)?
+                encode_jpeg_fast(&img, &self.options)?
             }
             settings::OutputFormat::Webp => {
                 // Usa libwebp nativo per encoding veloce
                 let is_large = original_size > 20_000_000;
-                encode_webp_fast(&img, is_large)?
+                encode_webp_fast(&img, &self.options, is_large)?
             }
             settings::OutputFormat::Png => {
                 // Usa l'encoder standard per PNG
@@ -242,14 +245,12 @@ impl ImageProcessor {
 }
 
 /// Encoding JPEG veloce usando turbojpeg
-fn encode_jpeg_fast(img: &DynamicImage) -> Option<Vec<u8>> {
+fn encode_jpeg_fast(img: &DynamicImage, options: &OptimizationOptions) -> Option<Vec<u8>> {
     let rgb_img = img.to_rgb8();
     let width = rgb_img.width() as usize;
     let height = rgb_img.height() as usize;
     let pixels = rgb_img.as_raw();
 
-    // turbojpeg::compress accetta un turbojpeg::Image
-    // pitch = larghezza * numero di canali (RGB = 3)
     let tj_image = turbojpeg::Image {
         pixels: pixels.as_slice(),
         width,
@@ -258,26 +259,48 @@ fn encode_jpeg_fast(img: &DynamicImage) -> Option<Vec<u8>> {
         format: turbojpeg::PixelFormat::RGB,
     };
 
-    // Usa qualità 85 di default (ottimo compromesso velocità/qualità)
-    let owned_buf = turbojpeg::compress(tj_image, 85, turbojpeg::Subsamp::Sub2x2).ok()?;
+    // Qualità basata sul profilo
+    let quality = match options.profile {
+        settings::CompressionProfile::SmallestFile => 60,
+        settings::CompressionProfile::Balanced => 75,
+        settings::CompressionProfile::BestQuality | settings::CompressionProfile::Lossless => 85,
+    };
 
-    // Converti OwnedBuf in Vec<u8>
+    let owned_buf = turbojpeg::compress(tj_image, quality, turbojpeg::Subsamp::Sub2x2).ok()?;
     Some(owned_buf.to_vec())
 }
 
 /// Encoding WebP veloce usando libwebp nativo
-fn encode_webp_fast(img: &DynamicImage, is_large: bool) -> Option<Vec<u8>> {
+fn encode_webp_fast(
+    img: &DynamicImage,
+    options: &OptimizationOptions,
+    is_large: bool,
+) -> Option<Vec<u8>> {
     let rgba_img = img.to_rgba8();
     let width = rgba_img.width();
     let height = rgba_img.height();
 
-    // Usa qualità molto più bassa per file grandi (velocità massima)
-    let quality = if is_large { 60.0 } else { 75.0 };
-
     let encoder = webp::Encoder::from_rgba(rgba_img.as_raw(), width, height);
-    let webp_data = encoder.encode(quality);
 
-    Some(webp_data.to_vec())
+    match options.profile {
+        settings::CompressionProfile::Lossless => Some(encoder.encode_lossless().to_vec()),
+        _ => {
+            // Usa qualità basata sul profilo, riducila per file grandi
+            let base_quality = match options.profile {
+                settings::CompressionProfile::SmallestFile => 60.0,
+                settings::CompressionProfile::Balanced => 75.0,
+                settings::CompressionProfile::BestQuality => 85.0,
+                _ => 75.0,
+            };
+
+            let quality = if is_large {
+                base_quality - 10.0
+            } else {
+                base_quality
+            };
+            Some(encoder.encode(quality).to_vec())
+        }
+    }
 }
 
 // Funzione helper per verificare se un file è un'immagine supportata

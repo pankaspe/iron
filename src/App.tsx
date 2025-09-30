@@ -19,7 +19,7 @@ import { PersistentDropZone } from "./components/PersistentDropZone";
 import { ProcessingTable, ImageFile } from "./components/ProcessingTable";
 import { PreviewPanel } from "./components/PreviewPanel";
 import { Footer, SystemInfo } from "./components/Footer";
-import { SettingsModal, OptimizationOptions } from "./components/SettingsModal";
+import { SettingsPage, OptimizationOptions } from "./components/SettingsPage";
 import { OptimizationHeader } from "./components/OptimizationHeader";
 import { FiAlertTriangle } from "solid-icons/fi";
 import "./App.css";
@@ -54,10 +54,22 @@ function App() {
   const [selectedFileForPreview, setSelectedFileForPreview] =
     createSignal<ImageFile | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = createSignal(false);
+
+  // Crea lo store con le opzioni di default (con resize aggiunto)
   const [options, setOptions] = createStore<OptimizationOptions>({
     format: "webp",
     profile: "balanced",
+    resize: "qhd2k", // Default: 2K (consigliato)
   });
+
+  // Funzione helper per aggiornare una singola opzione
+  const updateOption = <K extends keyof OptimizationOptions>(
+    key: K,
+    value: OptimizationOptions[K],
+  ) => {
+    setOptions(key, value);
+  };
+
   const [progress, setProgress] = createStore({ current: 0, total: 0 });
   const [elapsedTime, setElapsedTime] = createSignal(0);
 
@@ -77,7 +89,6 @@ function App() {
       window.addEventListener("dragover", preventDefault);
       window.addEventListener("drop", preventDefault);
 
-      // Definiamo il tipo del payload per chiarezza e sicurezza
       type DropPayload = {
         paths: string[];
         position: { x: number; y: number };
@@ -85,7 +96,6 @@ function App() {
 
       unlistenDrop = await listen<DropPayload>("tauri://drag-drop", (event) => {
         console.log("Drag-drop event received!", event.payload);
-        // Passiamo event.payload.paths, che è l'array di stringhe
         handleNewFiles(event.payload.paths);
       });
 
@@ -185,6 +195,8 @@ function App() {
           });
         },
       );
+
+      // Passa le opzioni (ora include anche resize)
       await invoke("optimize_images", {
         paths: files.map((f) => f.path),
         options: { ...options },
@@ -203,72 +215,81 @@ function App() {
   return (
     <div class="h-screen bg-base-100 rounded-lg flex flex-row overflow-hidden pt-10">
       <Titlebar />
-      <SettingsModal
-        isOpen={isSettingsOpen()}
-        options={options}
-        setOptions={setOptions}
-        onClose={() => setIsSettingsOpen(false)}
-      />
-      <SidePanel
-        onOpenFile={() => openFileDialog(true)}
-        onOptimize={handleOptimize}
-        onOpenSettings={() => setIsSettingsOpen(true)}
-        isLoading={isLoading()}
-        fileCount={files.length}
-      />
 
-      <div class="flex-grow flex flex-col pl-24">
-        <div class="flex-grow flex flex-row p-4 gap-4 overflow-hidden">
-          <main class="flex-grow w-1/2 flex flex-col min-w-0 bg-base-200/30 rounded-lg p-2">
-            <header class="flex-shrink-0 px-2 pb-2">
-              <Show when={errorMessage()}>
-                <div role="alert" class="alert alert-error alert-sm">
-                  <FiAlertTriangle />
-                  <span>{errorMessage()}</span>
-                </div>
-              </Show>
-              <Show when={isLoading()}>
-                <OptimizationHeader
-                  progress={progress}
-                  elapsedTime={elapsedTime()}
+      {/* Mostra la pagina settings o la vista principale */}
+      <Show
+        when={!isSettingsOpen()}
+        fallback={
+          <div class="flex-grow">
+            <SettingsPage
+              options={options}
+              setOptions={updateOption}
+              onBack={() => setIsSettingsOpen(false)}
+            />
+          </div>
+        }
+      >
+        <SidePanel
+          onOpenFile={() => openFileDialog(true)}
+          onOptimize={handleOptimize}
+          onOpenSettings={() => setIsSettingsOpen(true)}
+          isLoading={isLoading()}
+          fileCount={files.length}
+        />
+
+        <div class="flex-grow flex flex-col pl-24">
+          <div class="flex-grow flex flex-row p-4 gap-4 overflow-hidden">
+            <main class="flex-grow w-1/2 flex flex-col min-w-0 bg-base-200/30 rounded-lg p-2">
+              <header class="flex-shrink-0 px-2 pb-2">
+                <Show when={errorMessage()}>
+                  <div role="alert" class="alert alert-error alert-sm">
+                    <FiAlertTriangle />
+                    <span>{errorMessage()}</span>
+                  </div>
+                </Show>
+                <Show when={isLoading()}>
+                  <OptimizationHeader
+                    progress={progress}
+                    elapsedTime={elapsedTime()}
+                  />
+                </Show>
+              </header>
+              <Switch>
+                <Match when={files.length > 0}>
+                  <ProcessingTable
+                    files={files}
+                    onRowClick={(file) => setSelectedFileForPreview(file)}
+                    selectedFileId={selectedFileForPreview()?.id ?? null}
+                    isOptimizing={isLoading()}
+                    onRemoveFile={removeFile}
+                  />
+                </Match>
+                <Match when={true}>
+                  <PersistentDropZone onOpenFile={() => openFileDialog(true)} />
+                </Match>
+              </Switch>
+            </main>
+            <aside class="w-1/2 flex-shrink-0">
+              <Show
+                when={selectedFileForPreview()}
+                fallback={
+                  <div class="w-full h-full flex items-center justify-center text-base-content/40 rounded-lg bg-base-200/30">
+                    <p>Select an image to see the preview</p>
+                  </div>
+                }
+              >
+                <PreviewPanel
+                  file={selectedFileForPreview()}
+                  onClose={() => setSelectedFileForPreview(null)}
                 />
               </Show>
-            </header>
-            <Switch>
-              <Match when={files.length > 0}>
-                <ProcessingTable
-                  files={files}
-                  onRowClick={(file) => setSelectedFileForPreview(file)}
-                  selectedFileId={selectedFileForPreview()?.id ?? null}
-                  isOptimizing={isLoading()}
-                  onRemoveFile={removeFile}
-                />
-              </Match>
-              <Match when={true}>
-                <PersistentDropZone onOpenFile={() => openFileDialog(true)} />
-              </Match>
-            </Switch>
-          </main>
-          <aside class="w-1/2 flex-shrink-0">
-            <Show
-              when={selectedFileForPreview()}
-              fallback={
-                <div class="w-full h-full flex items-center justify-center text-base-content/40 rounded-lg bg-base-200/30">
-                  <p>Select an image to see the preview</p>
-                </div>
-              }
-            >
-              <PreviewPanel
-                file={selectedFileForPreview()}
-                onClose={() => setSelectedFileForPreview(null)}
-              />
-            </Show>
-          </aside>
+            </aside>
+          </div>
+          <footer class="flex-shrink-0 border-t border-base-300">
+            <Footer info={systemInfo()} />
+          </footer>
         </div>
-        <footer class="flex-shrink-0 border-t border-base-300">
-          <Footer info={systemInfo()} />
-        </footer>
-      </div>
+      </Show>
     </div>
   );
 }
