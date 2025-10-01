@@ -13,24 +13,7 @@
 
   "plugins": {
     "shell": {
-      "open": ".+",
-      "scope": [
-        {
-          "name": "explorer",
-          "cmd": "explorer",
-          "args": true
-        },
-        {
-          "name": "open",
-          "cmd": "open",
-          "args": true
-        },
-        {
-          "name": "xdg-open",
-          "cmd": "xdg-open",
-          "args": true
-        }
-      ]
+      "open": ".+"
     }
   },
 

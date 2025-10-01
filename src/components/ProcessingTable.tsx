@@ -10,7 +10,7 @@ import {
   FiImage,
   FiLoader,
   FiAlertCircle,
-  FiFolder,
+  FiFile,
 } from "solid-icons/fi";
 
 export type ColorProfile =
@@ -176,10 +176,7 @@ export function ProcessingTable(props: ProcessingTableProps) {
                             <FiCheckCircle size={14} />
                             <span>Optimization complete!</span>
                           </div>
-                          <div
-                            class="tooltip tooltip-left"
-                            data-tip="Reveal in folder"
-                          >
+                          <div class="tooltip tooltip-left" data-tip="Open">
                             <button
                               class="btn btn-ghost btn-xs btn-circle"
                               onClick={(e) => {
@@ -189,7 +186,7 @@ export function ProcessingTable(props: ProcessingTableProps) {
                                 );
                               }}
                             >
-                              <FiFolder size={14} />
+                              <FiFile size={12} /> open
                             </button>
                           </div>
                         </Match>
