@@ -16,11 +16,11 @@ export function Titlebar() {
     >
       {/* Logo e Titolo */}
       <div class="flex items-center gap-3">
-        <div class="w-7 h-7 bg-gradient-to-br from-primary to-secondary rounded-lg flex items-center justify-center shadow-md">
-          <FiZap class="w-4 h-4 text-primary-content" />
+        <div class="w-5 h-5 bg-gradient-to-br from-primary to-secondary rounded-lg flex items-center justify-center shadow-md">
+          <FiZap class="w-3 h-3 text-primary-content" />
         </div>
         <span class="font-bold text-sm bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-          Iron Optimizer
+          Image Rust Optimizer Node
         </span>
       </div>
 

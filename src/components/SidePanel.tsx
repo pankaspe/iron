@@ -18,15 +18,7 @@ export function SidePanel(props: SidePanelProps) {
   const hasFiles = () => props.fileCount > 0;
 
   return (
-    <aside class="fixed top-10 left-0 bottom-0 w-24 bg-gradient-to-b from-base-200 to-base-300 flex flex-col items-center py-6 border-r-2 border-base-300/50 rounded-bl-3xl shadow-xl">
-      {/* Logo o branding top */}
-      <div class="flex flex-col items-center gap-2 mb-6">
-        <div class="w-12 h-12 bg-gradient-to-br from-primary to-secondary rounded-xl flex items-center justify-center shadow-lg">
-          <FiImage class="w-6 h-6 text-primary-content" />
-        </div>
-        <div class="w-8 h-1 bg-primary/30 rounded-full"></div>
-      </div>
-
+    <aside class="fixed top-10 left-0 bottom-0 w-24 bg-gradient-to-b from-base-200 to-base-300 flex flex-col items-center py-6 border-r-2 border-base-300/50 rounded-bl-xl ">
       {/* Main actions - Allineate in alto */}
       <div class="flex flex-col gap-4 mb-auto">
         <button

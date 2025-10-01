@@ -30,7 +30,7 @@ export function OptimizationHeader(props: OptimizationHeaderProps) {
   return (
     <div class="w-full bg-gradient-to-r from-primary/10 to-secondary/10 p-4 rounded-xl border border-primary/20 animate-fade-in shadow-lg">
       {/* Header con info */}
-      <div class="flex justify-between items-center mb-3">
+      <div class="flex justify-between items-center mb-6">
         <div class="flex items-center gap-3">
           <div class="relative">
             <FiZap class="text-primary animate-pulse" size={24} />
