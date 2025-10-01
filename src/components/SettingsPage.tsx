@@ -1,11 +1,14 @@
 // src/components/SettingsPage.tsx
 import { For, Show } from "solid-js";
+import { open } from "@tauri-apps/plugin-dialog";
 import {
   FiArrowLeft,
   FiPackage,
   FiSliders,
   FiMaximize2,
   FiInfo,
+  FiFolder,
+  FiFolderPlus,
 } from "solid-icons/fi";
 
 // --- Tipi ---
@@ -25,10 +28,15 @@ export type ResizePreset =
   | "sd"
   | { custom: { width: number; height: number } };
 
+export type OutputDestination =
+  | { type: "sameFolder" }
+  | { type: "customFolder"; path: string };
+
 export type OptimizationOptions = {
   format: OutputFormat;
   profile: CompressionProfile;
   resize: ResizePreset;
+  destination: OutputDestination;
 };
 
 type StoreSetter<T> = (key: keyof T, value: T[keyof T]) => void;
@@ -164,6 +172,36 @@ export function SettingsPage(props: SettingsPageProps) {
     }
   };
 
+  const handleDestinationChange = async (useCustomFolder: boolean) => {
+    if (useCustomFolder) {
+      try {
+        const selectedPath = await open({
+          multiple: false,
+          directory: true,
+          title: "Select destination folder for optimized images",
+        });
+
+        if (selectedPath && typeof selectedPath === "string") {
+          props.setOptions("destination", {
+            type: "customFolder",
+            path: selectedPath,
+          });
+        }
+      } catch (error) {
+        console.error("Failed to select folder:", error);
+      }
+    } else {
+      props.setOptions("destination", { type: "sameFolder" });
+    }
+  };
+
+  const isCustomDestination = () =>
+    props.options.destination.type === "customFolder";
+  const customDestinationPath = () =>
+    props.options.destination.type === "customFolder"
+      ? props.options.destination.path
+      : null;
+
   const currentFormatInfo = () =>
     FORMAT_OPTIONS.find((f) => f.value === props.options.format);
 
@@ -253,6 +291,106 @@ export function SettingsPage(props: SettingsPageProps) {
                   <span>{currentFormatInfo()?.description}</span>
                 </div>
               </Show>
+            </div>
+          </section>
+
+          {/* Output Destination Section - NUOVO */}
+          <section class="card bg-base-100 shadow-lg">
+            <div class="card-body">
+              <h2 class="card-title text-2xl flex items-center gap-2">
+                <FiFolder class="text-warning" size={28} />
+                Output Destination
+              </h2>
+              <p class="text-base-content/70 mb-4">
+                Choose where to save your optimized images
+              </p>
+
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Same Folder Option */}
+                <div
+                  class="card border-2 cursor-pointer transition-all hover:shadow-md"
+                  classList={{
+                    "border-warning bg-warning/5": !isCustomDestination(),
+                    "border-base-300 hover:border-warning/50":
+                      isCustomDestination(),
+                  }}
+                  onClick={() => handleDestinationChange(false)}
+                >
+                  <div class="card-body p-4">
+                    <h3 class="font-bold text-lg flex items-center gap-2">
+                      <FiFolder size={20} />
+                      Same as Source
+                      <Show when={!isCustomDestination()}>
+                        <span class="badge badge-warning badge-sm">Active</span>
+                      </Show>
+                    </h3>
+                    <p class="text-sm text-base-content/70 mt-2">
+                      Save optimized images in the same folder as the original
+                      files. Files will be named with "-optimized" suffix.
+                    </p>
+                    <div class="mt-3 p-2 bg-base-200 rounded text-xs font-mono">
+                      Example: image.jpg → image-optimized.webp
+                    </div>
+                  </div>
+                </div>
+
+                {/* Custom Folder Option */}
+                <div
+                  class="card border-2 cursor-pointer transition-all hover:shadow-md"
+                  classList={{
+                    "border-warning bg-warning/5": isCustomDestination(),
+                    "border-base-300 hover:border-warning/50":
+                      !isCustomDestination(),
+                  }}
+                  onClick={() => handleDestinationChange(true)}
+                >
+                  <div class="card-body p-4">
+                    <h3 class="font-bold text-lg flex items-center gap-2">
+                      <FiFolderPlus size={20} />
+                      Custom Folder
+                      <Show when={isCustomDestination()}>
+                        <span class="badge badge-warning badge-sm">Active</span>
+                      </Show>
+                    </h3>
+                    <p class="text-sm text-base-content/70 mt-2">
+                      Choose a specific folder where all optimized images will
+                      be saved. Keeps your workflow organized.
+                    </p>
+                    <Show
+                      when={customDestinationPath()}
+                      fallback={
+                        <div class="mt-3 p-2 bg-base-200 rounded text-xs text-base-content/50 italic">
+                          Click to select a destination folder
+                        </div>
+                      }
+                    >
+                      <div class="mt-3 p-2 bg-success/10 border border-success/30 rounded">
+                        <div class="text-xs text-base-content/60 mb-1">
+                          Selected folder:
+                        </div>
+                        <div
+                          class="text-xs font-mono text-success truncate"
+                          title={customDestinationPath()!}
+                        >
+                          {customDestinationPath()}
+                        </div>
+                      </div>
+                    </Show>
+                  </div>
+                </div>
+              </div>
+
+              <div class="alert alert-info mt-4">
+                <FiInfo />
+                <div>
+                  <div class="font-bold">File Organization</div>
+                  <div class="text-sm">
+                    {isCustomDestination()
+                      ? "All optimized files will be saved to your chosen folder, maintaining their original filenames with the appropriate format extension."
+                      : "Optimized files stay alongside their originals, making it easy to compare and manage."}
+                  </div>
+                </div>
+              </div>
             </div>
           </section>
 

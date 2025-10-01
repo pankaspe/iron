@@ -208,7 +208,7 @@ impl ImageProcessor {
         // Applica il resize prima dell'encoding
         let img = settings::apply_resize(&img, &self.options.resize);
 
-        // Genera il percorso di output
+        // Genera il percorso di output in base alla destinazione scelta
         let new_extension = match self.options.format {
             settings::OutputFormat::Jpeg => "jpg",
             settings::OutputFormat::Png => "png",
@@ -217,7 +217,28 @@ impl ImageProcessor {
 
         let file_stem = path.file_stem()?.to_str()?;
         let new_filename = format!("{}-optimized.{}", file_stem, new_extension);
-        let output_path = path.with_file_name(new_filename);
+
+        let output_path = match &self.options.destination {
+            settings::OutputDestination::SameFolder => {
+                // Salva nella stessa cartella del file originale
+                path.with_file_name(new_filename)
+            }
+            settings::OutputDestination::CustomFolder { path: custom_path } => {
+                // Salva nella cartella personalizzata
+                let custom_dir = PathBuf::from(custom_path);
+
+                // Verifica che la cartella di destinazione esista
+                if !custom_dir.exists() {
+                    eprintln!(
+                        "Destination folder does not exist: {}",
+                        custom_dir.display()
+                    );
+                    return None;
+                }
+
+                custom_dir.join(new_filename)
+            }
+        };
 
         // Encoding veloce basato sul formato
         let encoded_bytes = match self.options.format {

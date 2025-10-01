@@ -83,10 +83,18 @@ impl ResizePreset {
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
+#[serde(tag = "type", rename_all = "camelCase")]
+pub enum OutputDestination {
+    SameFolder,
+    CustomFolder { path: String },
+}
+
+#[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct OptimizationOptions {
     pub format: OutputFormat,
     pub profile: CompressionProfile,
     pub resize: ResizePreset,
+    pub destination: OutputDestination,
 }
 
 /// Applica il resize all'immagine se necessario

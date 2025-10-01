@@ -7,7 +7,7 @@ import {
   Match,
   onMount,
   onCleanup,
-  createEffect, // <-- 1. Importa createEffect per la reattività
+  createEffect,
 } from "solid-js";
 import { open } from "@tauri-apps/plugin-dialog";
 import { invoke } from "@tauri-apps/api/core";
@@ -77,6 +77,7 @@ function App() {
       format: "webp",
       profile: "balanced",
       resize: "qhd2k",
+      destination: { type: "sameFolder" },
     };
     try {
       const savedSettings = localStorage.getItem(SETTINGS_STORAGE_KEY);
