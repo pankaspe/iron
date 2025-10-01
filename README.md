@@ -86,10 +86,10 @@ cd iron-optimizer
 bun install
 
 # Run in development mode
-bun run tauri dev
+bun tauri dev
 
 # Build for production
-bun run tauri build
+bun tauri build
 ```
 
 ---
