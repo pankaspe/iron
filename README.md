@@ -21,6 +21,8 @@
 - **Drag & Drop** - Intuitive file and folder support
 - **Cross-platform** - Windows, macOS, and Linux support
 
+![Iron](screenshot2.png)
+
 ---
 
 ## Architecture & Performance
