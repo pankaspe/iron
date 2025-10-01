@@ -1,4 +1,5 @@
 // src/App.tsx
+
 import {
   createSignal,
   Show,
@@ -6,6 +7,7 @@ import {
   Match,
   onMount,
   onCleanup,
+  createEffect, // <-- 1. Importa createEffect per la reattività
 } from "solid-js";
 import { open } from "@tauri-apps/plugin-dialog";
 import { invoke } from "@tauri-apps/api/core";
@@ -32,7 +34,7 @@ type ImageInfo = {
   last_modified: number;
   color_profile: ColorProfile;
   needs_conversion: boolean;
-  preview_path?: string; // NUOVO: per anteprime TIFF
+  preview_path?: string;
 };
 
 type ColorProfile =
@@ -57,6 +59,9 @@ type ProgressPayload = {
 
 let timerInterval: number | undefined;
 
+// --- NUOVO: Chiave per il localStorage ---
+const SETTINGS_STORAGE_KEY = "iron-optimizer-settings";
+
 function App() {
   const [files, setFiles] = createStore<ImageFile[]>([]);
   const [isLoading, setIsLoading] = createSignal(false);
@@ -66,14 +71,42 @@ function App() {
     createSignal<ImageFile | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = createSignal(false);
 
-  // Crea lo store con le opzioni di default (con resize aggiunto)
-  const [options, setOptions] = createStore<OptimizationOptions>({
-    format: "webp",
-    profile: "balanced",
-    resize: "qhd2k", // Default: 2K (consigliato)
+  // --- NUOVO: Funzione per caricare le impostazioni all'avvio ---
+  const loadInitialSettings = (): OptimizationOptions => {
+    const defaults: OptimizationOptions = {
+      format: "webp",
+      profile: "balanced",
+      resize: "qhd2k",
+    };
+    try {
+      const savedSettings = localStorage.getItem(SETTINGS_STORAGE_KEY);
+      if (savedSettings) {
+        // Uniamo i default con le opzioni salvate per garantire che
+        // nuove opzioni future non rompano l'app.
+        return { ...defaults, ...JSON.parse(savedSettings) };
+      }
+    } catch (error) {
+      console.error("Failed to parse saved settings, using defaults.", error);
+    }
+    return defaults;
+  };
+
+  // --- MODIFICATO: Inizializza lo store con le opzioni caricate ---
+  const [options, setOptions] = createStore<OptimizationOptions>(
+    loadInitialSettings(),
+  );
+
+  // --- NUOVO: Effetto per salvare le impostazioni a ogni cambiamento ---
+  // Questo createEffect si riesegue automaticamente ogni volta che 'options' cambia.
+  createEffect(() => {
+    try {
+      localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(options));
+    } catch (error) {
+      console.error("Failed to save settings.", error);
+    }
   });
 
-  // Funzione helper per aggiornare una singola opzione
+  // Funzione helper per aggiornare una singola opzione (invariata)
   const updateOption = <K extends keyof OptimizationOptions>(
     key: K,
     value: OptimizationOptions[K],
@@ -84,10 +117,8 @@ function App() {
   const [progress, setProgress] = createStore({ current: 0, total: 0 });
   const [elapsedTime, setElapsedTime] = createSignal(0);
 
-  // Calcola quanti file sono stati completati
   const completedCount = () => files.filter((f) => f.status === "done").length;
 
-  // Funzione per pulire la coda
   function handleCleanQueue() {
     setFiles([]);
     setSelectedFileForPreview(null);
@@ -116,7 +147,6 @@ function App() {
       };
 
       unlistenDrop = await listen<DropPayload>("tauri://drag-drop", (event) => {
-        console.log("Drag-drop event received!", event.payload);
         handleNewFiles(event.payload.paths);
       });
 
@@ -217,7 +247,6 @@ function App() {
         },
       );
 
-      // Passa le opzioni (ora include anche resize)
       await invoke("optimize_images", {
         paths: files.map((f) => f.path),
         options: { ...options },
@@ -237,7 +266,6 @@ function App() {
     <div class="h-screen bg-base-100 rounded-lg flex flex-row overflow-hidden pt-10">
       <Titlebar />
 
-      {/* Mostra la pagina settings o la vista principale */}
       <Show
         when={!isSettingsOpen()}
         fallback={

@@ -1,5 +1,6 @@
 // src/components/ProcessingTable.tsx
 import { For, Switch, Match, Show } from "solid-js";
+import { open } from "@tauri-apps/plugin-shell";
 import { convertFileSrc } from "@tauri-apps/api/core";
 import {
   FiCheckCircle,
@@ -9,6 +10,7 @@ import {
   FiImage,
   FiLoader,
   FiAlertCircle,
+  FiFolder,
 } from "solid-icons/fi";
 
 export type ColorProfile =
@@ -69,6 +71,16 @@ function getColorProfileBadgeClass(profile: ColorProfile): string {
     return "badge-success";
   }
   return "badge-warning";
+}
+
+// Funzione helper da aggiungere all'interno del componente ProcessingTable
+async function handleRevealInFolder(path: string) {
+  try {
+    // Non più invoke, ma una chiamata diretta alla funzione del plugin!
+    await open(path);
+  } catch (error) {
+    console.error("Failed to reveal in folder:", error);
+  }
 }
 
 export function ProcessingTable(props: ProcessingTableProps) {
@@ -163,6 +175,22 @@ export function ProcessingTable(props: ProcessingTableProps) {
                           <div class="flex items-center gap-2 text-xs text-success font-semibold">
                             <FiCheckCircle size={14} />
                             <span>Optimization complete!</span>
+                          </div>
+                          <div
+                            class="tooltip tooltip-left"
+                            data-tip="Reveal in folder"
+                          >
+                            <button
+                              class="btn btn-ghost btn-xs btn-circle"
+                              onClick={(e) => {
+                                e.stopPropagation(); // Previene il click sulla riga
+                                handleRevealInFolder(
+                                  file.result!.optimized_path,
+                                );
+                              }}
+                            >
+                              <FiFolder size={14} />
+                            </button>
                           </div>
                         </Match>
                         <Match
