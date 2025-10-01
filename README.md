@@ -1,4 +1,4 @@
-# Iron - Image Rust Optimizer
+# Iron - Image Rust Optimizer Node
 
 ![Status](https://img.shields.io/badge/status-under--development-orange)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
