@@ -13,6 +13,7 @@ import {
 export type ImageFile = {
   id: string;
   path: string;
+  preview_path?: string;
   size_kb: number;
   mimetype: string;
   last_modified: number;

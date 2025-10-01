@@ -61,33 +61,6 @@ pub fn get_image_metadata(paths: Vec<String>) -> Result<Vec<ImageInfo>, String> 
             let color_profile = color_profile::detect_color_profile(&path);
             let needs_conversion = !color_profile.is_web_safe();
 
-            // Per TIFF, genera un'anteprima JPEG temporanea
-            let preview_path = if mimetype == "image/tiff" {
-                let file_size = metadata.len();
-                match image_decoder::generate_tiff_preview(&path, file_size) {
-                    Ok(preview_bytes) => {
-                        // Salva l'anteprima temporanea
-                        let preview_file = path.with_extension("tiff.preview.jpg");
-                        match fs::write(&preview_file, preview_bytes) {
-                            Ok(_) => {
-                                println!("TIFF preview saved: {}", preview_file.display());
-                                Some(preview_file.to_string_lossy().to_string())
-                            }
-                            Err(e) => {
-                                eprintln!("Failed to save TIFF preview: {}", e);
-                                None
-                            }
-                        }
-                    }
-                    Err(e) => {
-                        eprintln!("Failed to generate TIFF preview: {}", e);
-                        None
-                    }
-                }
-            } else {
-                None
-            };
-
             Ok(ImageInfo {
                 path: p_str,
                 size_kb: metadata.len() as f64 / 1024.0,
@@ -95,7 +68,7 @@ pub fn get_image_metadata(paths: Vec<String>) -> Result<Vec<ImageInfo>, String> 
                 last_modified,
                 color_profile,
                 needs_conversion,
-                preview_path,
+                preview_path: None, // Non serve più per JPEG/PNG
             })
         })
         .collect()

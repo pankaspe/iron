@@ -159,9 +159,7 @@ function App() {
       const selectedPaths = await open({
         multiple,
         directory: false,
-        filters: [
-          { name: "Images", extensions: ["jpg", "jpeg", "png", "tif", "tiff"] },
-        ],
+        filters: [{ name: "Images", extensions: ["jpg", "jpeg", "png"] }],
       });
       if (selectedPaths) {
         const paths = Array.isArray(selectedPaths)

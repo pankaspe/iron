@@ -38,11 +38,10 @@ impl ImageTask {
 
         let size_bytes = metadata.len();
 
-        // Limite aumentato per TIFF (possono essere molto grandi)
-        if size_bytes > 500_000_000 {
+        if size_bytes > 1_000_000_000 {
             return Self::Invalid {
                 path,
-                reason: "File exceeds 500MB limit.".to_string(),
+                reason: "File exceeds 1GB limit.".to_string(),
             };
         }
 
@@ -54,13 +53,11 @@ impl ImageTask {
         }
 
         match ImageFormat::from_path(&path) {
-            Ok(format) if matches!(format, ImageFormat::Png | ImageFormat::Jpeg | ImageFormat::Tiff) => {
-                Self::Valid {
-                    path,
-                    format,
-                    size_bytes,
-                }
-            }
+            Ok(format) if matches!(format, ImageFormat::Png | ImageFormat::Jpeg) => Self::Valid {
+                path,
+                format,
+                size_bytes,
+            },
             Ok(_) => Self::Invalid {
                 path,
                 reason: "Unsupported image format.".to_string(),
