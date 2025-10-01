@@ -80,7 +80,7 @@ The resize system intelligently handles images while preserving quality:
 ```bash
 # Clone the repository
 git clone https://github.com/pankaspe/iron.git
-cd iron-optimizer
+cd iron
 
 # Install dependencies
 bun install
