@@ -246,7 +246,7 @@ export function SettingsPage(props: SettingsPageProps) {
 
       {/* Content */}
       <div class="flex-grow overflow-y-auto p-6">
-        <div class="max-w-4xl mx-auto space-y-8">
+        <div class="max-w-6xl mx-auto space-y-8">
           {/* Output Format Section */}
           <section class="card bg-base-100 shadow-lg">
             <div class="card-body">
