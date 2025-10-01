@@ -2,7 +2,7 @@
 name = "iron"
 version = "0.1.0"
 description = "Image Rust Optimize Node"
-authors = ["you"]
+authors = ["Andrea Burza"]
 edition = "2021"
 
 [lib]

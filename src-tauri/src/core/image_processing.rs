@@ -1,6 +1,6 @@
 // src-tauri/src/core/image_processing.rs
 
-use crate::core::color_profile::{self, ColorProfile};
+use crate::core::color_profile::{self};
 use crate::core::image_decoder;
 use crate::core::models::{ImageInfo, OptimizationResult, ProgressPayload};
 use crate::core::settings::{self, OptimizationOptions};
