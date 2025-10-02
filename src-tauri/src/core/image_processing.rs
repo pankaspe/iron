@@ -2,9 +2,12 @@
 
 use crate::core::color_profile::{self};
 use crate::core::image_decoder;
-use crate::core::models::{ImageInfo, OptimizationResult, ProgressPayload};
+use crate::core::models::{
+    ImageInfo, MetadataProgressPayload, OptimizationResult, ProgressPayload,
+};
 use crate::core::settings::{self, OptimizationOptions};
 use crate::core::task::ImageTask;
+use crate::core::thumbnail::ThumbnailCache;
 use image::{DynamicImage, ImageFormat};
 use rayon::prelude::*;
 use std::fs;
@@ -18,6 +21,7 @@ use walkdir::WalkDir;
 // --- Comandi Tauri ---
 
 /// Legge i metadati di base da una lista di percorsi, esplorando le cartelle.
+/// Versione SINCRONA (per compatibilità)
 #[tauri::command]
 pub fn get_image_metadata(paths: Vec<String>) -> Result<Vec<ImageInfo>, String> {
     let mut discovered_files: Vec<PathBuf> = Vec::new();
@@ -40,38 +44,128 @@ pub fn get_image_metadata(paths: Vec<String>) -> Result<Vec<ImageInfo>, String> 
     }
     discovered_files.sort();
     discovered_files.dedup();
+
+    // Inizializza la cache delle thumbnail
+    let thumbnail_cache = ThumbnailCache::new().ok();
+
     discovered_files
         .into_iter()
-        .map(|path| {
-            let p_str = path.to_string_lossy().to_string();
-            let metadata = fs::metadata(&path).map_err(|e| e.to_string())?;
-            let maybe_type =
-                infer::get_from_path(&path).map_err(|e| format!("Could not read file: {}", e))?;
-            let mimetype = maybe_type.map_or("application/octet-stream".to_string(), |t| {
-                t.mime_type().to_string()
-            });
-            let last_modified = metadata
-                .modified()
-                .map_err(|e| e.to_string())?
-                .duration_since(UNIX_EPOCH)
-                .map_err(|e| e.to_string())?
-                .as_secs();
-
-            // Rileva il profilo colore
-            let color_profile = color_profile::detect_color_profile(&path);
-            let needs_conversion = !color_profile.is_web_safe();
-
-            Ok(ImageInfo {
-                path: p_str,
-                size_kb: metadata.len() as f64 / 1024.0,
-                mimetype,
-                last_modified,
-                color_profile,
-                needs_conversion,
-                preview_path: None, // Non serve più per JPEG/PNG
-            })
-        })
+        .map(|path| extract_image_info(&path, &thumbnail_cache))
         .collect()
+}
+
+/// NUOVO: Versione PROGRESSIVA con emissione di eventi per ogni immagine processata
+#[tauri::command]
+pub async fn get_image_metadata_progressive(
+    app_handle: tauri::AppHandle,
+    paths: Vec<String>,
+) -> Result<(), String> {
+    let handle = tauri::async_runtime::spawn_blocking(move || {
+        let mut discovered_files: Vec<PathBuf> = Vec::new();
+
+        // Scopri tutti i file
+        for p_str in paths {
+            let path = Path::new(&p_str);
+            if !path.exists() {
+                continue;
+            }
+            if path.is_dir() {
+                for entry in WalkDir::new(path)
+                    .into_iter()
+                    .filter_map(Result::ok)
+                    .filter(|e| image_decoder::is_supported_format(e.path()))
+                {
+                    discovered_files.push(entry.into_path());
+                }
+            } else if image_decoder::is_supported_format(path) {
+                discovered_files.push(path.to_path_buf());
+            }
+        }
+
+        discovered_files.sort();
+        discovered_files.dedup();
+
+        let total = discovered_files.len();
+        let thumbnail_cache = ThumbnailCache::new().ok();
+        let current_progress = Arc::new(Mutex::new(0usize));
+
+        // Processa in parallelo con Rayon
+        discovered_files.par_iter().for_each(|path| {
+            if let Ok(image_info) = extract_image_info(path, &thumbnail_cache) {
+                let mut progress = current_progress.lock().unwrap();
+                *progress += 1;
+                let current = *progress;
+                drop(progress);
+
+                // Emetti evento per ogni immagine processata
+                let _ = app_handle.emit(
+                    "metadata-progress",
+                    MetadataProgressPayload {
+                        image_info,
+                        current,
+                        total,
+                    },
+                );
+            }
+        });
+
+        // Segnala completamento
+        let _ = app_handle.emit("metadata-complete", ());
+    });
+
+    handle
+        .await
+        .map_err(|e| format!("Metadata extraction failed: {}", e))?;
+
+    Ok(())
+}
+
+/// Estrae le informazioni di un'immagine con thumbnail
+fn extract_image_info(
+    path: &Path,
+    thumbnail_cache: &Option<ThumbnailCache>,
+) -> Result<ImageInfo, String> {
+    let p_str = path.to_string_lossy().to_string();
+    let metadata = fs::metadata(path).map_err(|e| e.to_string())?;
+
+    let maybe_type =
+        infer::get_from_path(path).map_err(|e| format!("Could not read file: {}", e))?;
+
+    let mimetype = maybe_type.map_or("application/octet-stream".to_string(), |t| {
+        t.mime_type().to_string()
+    });
+
+    let last_modified = metadata
+        .modified()
+        .map_err(|e| e.to_string())?
+        .duration_since(UNIX_EPOCH)
+        .map_err(|e| e.to_string())?
+        .as_secs();
+
+    // Rileva il profilo colore
+    let color_profile = color_profile::detect_color_profile(path);
+    let needs_conversion = !color_profile.is_web_safe();
+
+    // Genera o recupera thumbnail dalla cache
+    let thumbnail_path = if let Some(cache) = thumbnail_cache {
+        cache
+            .generate_thumbnail(path)
+            .ok()
+            .and_then(|p| p.to_str().map(|s| s.to_string()))
+    } else {
+        None
+    };
+
+    Ok(ImageInfo {
+        path: p_str,
+        size_kb: metadata.len() as f64 / 1024.0,
+        mimetype,
+        last_modified,
+        color_profile,
+        needs_conversion,
+        preview_path: None,
+        thumbnail_path,
+    })
 }
 
 /// Comando asincrono che orchestra l'ottimizzazione delle immagini.

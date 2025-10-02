@@ -6,3 +6,4 @@ pub mod models;
 pub mod settings;
 pub mod system_info;
 pub mod task;
+pub mod thumbnail;

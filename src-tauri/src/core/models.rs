@@ -11,7 +11,8 @@ pub struct ImageInfo {
     pub last_modified: u64,
     pub color_profile: ColorProfile,
     pub needs_conversion: bool,
-    pub preview_path: Option<String>, // NUOVO: per anteprime TIFF
+    pub preview_path: Option<String>, // Path della thumbnail per anteprime veloci
+    pub thumbnail_path: Option<String>, // NUOVO: thumbnail in cache
 }
 
 #[derive(Clone, Serialize)]
@@ -35,4 +36,12 @@ pub struct SystemInfo {
     pub cpu_cores: usize,
     pub total_memory_gb: f64,
     pub os_name: String,
+}
+
+// NUOVO: Payload per il caricamento progressivo dei metadati
+#[derive(Clone, Serialize)]
+pub struct MetadataProgressPayload {
+    pub image_info: ImageInfo,
+    pub current: usize,
+    pub total: usize,
 }

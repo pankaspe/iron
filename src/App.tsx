@@ -35,6 +35,7 @@ type ImageInfo = {
   color_profile: ColorProfile;
   needs_conversion: boolean;
   preview_path?: string;
+  thumbnail_path?: string; // NUOVO: thumbnail cache
 };
 
 type ColorProfile =
@@ -51,27 +52,39 @@ type OptimizationResult = {
   optimized_size_kb: number;
   reduction_percentage: number;
 };
+
 type ProgressPayload = {
   result: OptimizationResult;
   current: number;
   total: number;
 };
 
+type MetadataProgressPayload = {
+  image_info: ImageInfo;
+  current: number;
+  total: number;
+};
+
 let timerInterval: number | undefined;
 
-// --- NUOVO: Chiave per il localStorage ---
+// --- Chiave per il localStorage ---
 const SETTINGS_STORAGE_KEY = "iron-optimizer-settings";
 
 function App() {
   const [files, setFiles] = createStore<ImageFile[]>([]);
   const [isLoading, setIsLoading] = createSignal(false);
+  const [isLoadingMetadata, setIsLoadingMetadata] = createSignal(false); // NUOVO
+  const [metadataProgress, setMetadataProgress] = createSignal({
+    current: 0,
+    total: 0,
+  }); // NUOVO
   const [errorMessage, setErrorMessage] = createSignal<string | null>(null);
   const [systemInfo, setSystemInfo] = createSignal<SystemInfo | null>(null);
   const [selectedFileForPreview, setSelectedFileForPreview] =
     createSignal<ImageFile | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = createSignal(false);
 
-  // --- NUOVO: Funzione per caricare le impostazioni all'avvio ---
+  // --- Funzione per caricare le impostazioni all'avvio ---
   const loadInitialSettings = (): OptimizationOptions => {
     const defaults: OptimizationOptions = {
       format: "webp",
@@ -82,8 +95,6 @@ function App() {
     try {
       const savedSettings = localStorage.getItem(SETTINGS_STORAGE_KEY);
       if (savedSettings) {
-        // Uniamo i default con le opzioni salvate per garantire che
-        // nuove opzioni future non rompano l'app.
         return { ...defaults, ...JSON.parse(savedSettings) };
       }
     } catch (error) {
@@ -92,13 +103,11 @@ function App() {
     return defaults;
   };
 
-  // --- MODIFICATO: Inizializza lo store con le opzioni caricate ---
   const [options, setOptions] = createStore<OptimizationOptions>(
     loadInitialSettings(),
   );
 
-  // --- NUOVO: Effetto per salvare le impostazioni a ogni cambiamento ---
-  // Questo createEffect si riesegue automaticamente ogni volta che 'options' cambia.
+  // --- Effetto per salvare le impostazioni a ogni cambiamento ---
   createEffect(() => {
     try {
       localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(options));
@@ -107,7 +116,6 @@ function App() {
     }
   });
 
-  // Funzione helper per aggiornare una singola opzione (invariata)
   const updateOption = <K extends keyof OptimizationOptions>(
     key: K,
     value: OptimizationOptions[K],
@@ -124,18 +132,21 @@ function App() {
     setFiles([]);
     setSelectedFileForPreview(null);
     setProgress({ current: 0, total: 0 });
+    setMetadataProgress({ current: 0, total: 0 });
   }
 
   onMount(() => {
     const preventDefault = (e: Event) => e.preventDefault();
     let unlistenDrop: UnlistenFn | undefined;
+    let unlistenMetadataProgress: UnlistenFn | undefined;
+    let unlistenMetadataComplete: UnlistenFn | undefined;
 
     onCleanup(() => {
       window.removeEventListener("dragover", preventDefault);
       window.removeEventListener("drop", preventDefault);
-      if (unlistenDrop) {
-        unlistenDrop();
-      }
+      if (unlistenDrop) unlistenDrop();
+      if (unlistenMetadataProgress) unlistenMetadataProgress();
+      if (unlistenMetadataComplete) unlistenMetadataComplete();
     });
 
     const setupAsyncListeners = async () => {
@@ -151,6 +162,41 @@ function App() {
         handleNewFiles(event.payload.paths);
       });
 
+      // NUOVO: Listener per il progresso dei metadati
+      unlistenMetadataProgress = await listen<MetadataProgressPayload>(
+        "metadata-progress",
+        (event) => {
+          const info = event.payload.image_info;
+          const newFile: ImageFile = {
+            ...info,
+            id: info.path,
+            status: "pending" as const,
+          };
+
+          // Aggiungi o aggiorna il file
+          setFiles((currentFiles) => {
+            const existingIndex = currentFiles.findIndex(
+              (f) => f.id === newFile.id,
+            );
+            if (existingIndex >= 0) {
+              return currentFiles;
+            }
+            return [...currentFiles, newFile];
+          });
+
+          setMetadataProgress({
+            current: event.payload.current,
+            total: event.payload.total,
+          });
+        },
+      );
+
+      // NUOVO: Listener per il completamento dei metadati
+      unlistenMetadataComplete = await listen("metadata-complete", () => {
+        setIsLoadingMetadata(false);
+        setMetadataProgress({ current: 0, total: 0 });
+      });
+
       try {
         const info = await invoke<SystemInfo>("get_system_info");
         setSystemInfo(info);
@@ -164,24 +210,30 @@ function App() {
 
   async function handleNewFiles(paths: string[]) {
     if (!paths || paths.length === 0) return;
+
+    setIsLoadingMetadata(true);
+    setErrorMessage(null);
+
     try {
+      // Filtra solo i path che non sono già nella lista
       const currentPaths = new Set(files.map((f) => f.path));
       const uniqueNewPaths = paths.filter((p) => !currentPaths.has(p));
-      if (uniqueNewPaths.length === 0) return;
 
-      const infos = await invoke<ImageInfo[]>("get_image_metadata", {
+      if (uniqueNewPaths.length === 0) {
+        setIsLoadingMetadata(false);
+        return;
+      }
+
+      // Usa il nuovo comando progressivo
+      await invoke("get_image_metadata_progressive", {
         paths: uniqueNewPaths,
       });
-      const newFiles: ImageFile[] = infos.map((info) => ({
-        ...info,
-        id: info.path,
-        status: "pending" as const,
-      }));
 
-      setFiles((currentFiles) => [...currentFiles, ...newFiles]);
+      // Il caricamento termina automaticamente tramite l'evento "metadata-complete"
     } catch (e) {
       console.error("Failed to process new files:", e);
       setErrorMessage("Failed to read some of the provided files.");
+      setIsLoadingMetadata(false);
     }
   }
 
@@ -284,7 +336,7 @@ function App() {
           onOptimize={handleOptimize}
           onCleanQueue={handleCleanQueue}
           onOpenSettings={() => setIsSettingsOpen(true)}
-          isLoading={isLoading()}
+          isLoading={isLoading() || isLoadingMetadata()}
           fileCount={files.length}
           completedCount={completedCount()}
         />
@@ -299,6 +351,48 @@ function App() {
                     <span>{errorMessage()}</span>
                   </div>
                 </Show>
+
+                {/* NUOVO: Header per il caricamento dei metadati */}
+                <Show when={isLoadingMetadata()}>
+                  <div class="w-full bg-gradient-to-r from-info/10 to-info/5 p-4 rounded-xl border border-info/20 animate-fade-in shadow-lg mb-2">
+                    <div class="flex justify-between items-center mb-3">
+                      <div class="flex items-center gap-3">
+                        <span class="loading loading-spinner loading-sm text-info"></span>
+                        <div>
+                          <h3 class="font-bold text-base">Loading Images</h3>
+                          <p class="text-sm text-base-content/60">
+                            Processing {metadataProgress().current} of{" "}
+                            {metadataProgress().total} files
+                          </p>
+                        </div>
+                      </div>
+                      <div class="text-right">
+                        <div class="text-2xl font-bold font-mono text-info">
+                          {metadataProgress().total > 0
+                            ? Math.round(
+                                (metadataProgress().current /
+                                  metadataProgress().total) *
+                                  100,
+                              )
+                            : 0}
+                          %
+                        </div>
+                      </div>
+                    </div>
+                    <div class="w-full bg-base-200 rounded-full h-2 overflow-hidden">
+                      <div
+                        class="h-full bg-gradient-to-r from-info to-info/70 rounded-full transition-all duration-300"
+                        style={{
+                          width:
+                            metadataProgress().total > 0
+                              ? `${(metadataProgress().current / metadataProgress().total) * 100}%`
+                              : "0%",
+                        }}
+                      />
+                    </div>
+                  </div>
+                </Show>
+
                 <Show when={isLoading()}>
                   <OptimizationHeader
                     progress={progress}

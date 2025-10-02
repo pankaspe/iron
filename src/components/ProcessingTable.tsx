@@ -28,7 +28,8 @@ export type ImageFile = {
   last_modified: number;
   color_profile: ColorProfile;
   needs_conversion: boolean;
-  preview_path?: string; // NUOVO: per anteprime TIFF
+  preview_path?: string;
+  thumbnail_path?: string; // NUOVO: thumbnail dalla cache
   status: "pending" | "done";
   result?: {
     optimized_path: string;
@@ -73,14 +74,27 @@ function getColorProfileBadgeClass(profile: ColorProfile): string {
   return "badge-warning";
 }
 
-// Funzione helper da aggiungere all'interno del componente ProcessingTable
 async function handleRevealInFolder(path: string) {
   try {
-    // Non più invoke, ma una chiamata diretta alla funzione del plugin!
     await open(path);
   } catch (error) {
     console.error("Failed to reveal in folder:", error);
   }
+}
+
+// NUOVO: Funzione per ottenere il path della thumbnail o preview
+function getThumbnailSrc(file: ImageFile): string {
+  // Priorità: 1. Thumbnail cache, 2. Optimized, 3. Preview, 4. Original
+  if (file.thumbnail_path) {
+    return convertFileSrc(file.thumbnail_path);
+  }
+  if (file.result?.optimized_path) {
+    return convertFileSrc(file.result.optimized_path);
+  }
+  if (file.preview_path) {
+    return convertFileSrc(file.preview_path);
+  }
+  return convertFileSrc(file.path);
 }
 
 export function ProcessingTable(props: ProcessingTableProps) {
@@ -91,7 +105,6 @@ export function ProcessingTable(props: ProcessingTableProps) {
     });
   };
 
-  // Controlla se ci sono file che necessitano conversione
   const hasFilesNeedingConversion = () =>
     props.files.some((f) => f.needs_conversion);
 
@@ -144,19 +157,25 @@ export function ProcessingTable(props: ProcessingTableProps) {
                   }}
                   onClick={() => !props.isOptimizing && props.onRowClick(file)}
                 >
-                  {/* Preview thumbnail */}
+                  {/* Preview thumbnail - AGGIORNATO per usare la cache */}
                   <td class="py-2">
                     <div class="avatar">
                       <div class="mask mask-squircle w-12 h-12 bg-base-300 ring-2 ring-base-300 ring-offset-2 ring-offset-base-100">
-                        <img
-                          src={convertFileSrc(
-                            file.result?.optimized_path ??
-                              file.preview_path ??
-                              file.path,
-                          )}
-                          alt="Preview"
-                          class="object-cover"
-                        />
+                        <Show
+                          when={file.thumbnail_path}
+                          fallback={
+                            <div class="w-full h-full flex items-center justify-center">
+                              <span class="loading loading-spinner loading-xs"></span>
+                            </div>
+                          }
+                        >
+                          <img
+                            src={getThumbnailSrc(file)}
+                            alt="Preview"
+                            class="object-cover"
+                            loading="lazy"
+                          />
+                        </Show>
                       </div>
                     </div>
                   </td>
@@ -180,7 +199,7 @@ export function ProcessingTable(props: ProcessingTableProps) {
                             <button
                               class="btn btn-ghost btn-xs btn-circle"
                               onClick={(e) => {
-                                e.stopPropagation(); // Previene il click sulla riga
+                                e.stopPropagation();
                                 handleRevealInFolder(
                                   file.result!.optimized_path,
                                 );
