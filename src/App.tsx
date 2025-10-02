@@ -23,6 +23,7 @@ import { PreviewPanel } from "./components/PreviewPanel";
 import { Footer, SystemInfo } from "./components/Footer";
 import { SettingsPage, OptimizationOptions } from "./components/SettingsPage";
 import { OptimizationHeader } from "./components/OptimizationHeader";
+import { SuccessMetrics } from "./components/SuccessMetrics";
 import { FiAlertTriangle } from "solid-icons/fi";
 import "./App.css";
 
@@ -125,14 +126,40 @@ function App() {
 
   const [progress, setProgress] = createStore({ current: 0, total: 0 });
   const [elapsedTime, setElapsedTime] = createSignal(0);
+  const [showSuccessMetrics, setShowSuccessMetrics] = createSignal(false); // NUOVO
 
   const completedCount = () => files.filter((f) => f.status === "done").length;
+
+  // NUOVO: Calcola metriche totali
+  const totalMetrics = () => {
+    const completed = files.filter((f) => f.status === "done");
+    const totalOriginal = completed.reduce((sum, f) => sum + f.size_kb, 0);
+    const totalOptimized = completed.reduce(
+      (sum, f) => sum + (f.result?.optimized_size_kb || 0),
+      0,
+    );
+    const averageReduction =
+      completed.length > 0
+        ? completed.reduce(
+            (sum, f) => sum + (f.result?.reduction_percentage || 0),
+            0,
+          ) / completed.length
+        : 0;
+
+    return {
+      totalFiles: completed.length,
+      totalOriginalSize: totalOriginal,
+      totalOptimizedSize: totalOptimized,
+      averageReduction,
+    };
+  };
 
   function handleCleanQueue() {
     setFiles([]);
     setSelectedFileForPreview(null);
     setProgress({ current: 0, total: 0 });
     setMetadataProgress({ current: 0, total: 0 });
+    setShowSuccessMetrics(false); // NUOVO
   }
 
   onMount(() => {
@@ -270,6 +297,7 @@ function App() {
     setIsLoading(true);
     setErrorMessage(null);
     setSelectedFileForPreview(null);
+    setShowSuccessMetrics(false); // NUOVO: nascondi metriche precedenti
     setProgress({ current: 0, total: files.length });
     setElapsedTime(0);
     const startTime = Date.now();
@@ -304,6 +332,9 @@ function App() {
         paths: files.map((f) => f.path),
         options: { ...options },
       });
+
+      // NUOVO: Mostra metriche di successo dopo il completamento
+      setShowSuccessMetrics(true);
     } catch (e) {
       console.error("Optimization failed:", e);
       setErrorMessage(String(e));
@@ -352,7 +383,19 @@ function App() {
                   </div>
                 </Show>
 
-                {/* NUOVO: Header per il caricamento dei metadati */}
+                {/* NUOVO: Success Metrics */}
+                <Show when={showSuccessMetrics() && !isLoading()}>
+                  <SuccessMetrics
+                    totalFiles={totalMetrics().totalFiles}
+                    totalOriginalSize={totalMetrics().totalOriginalSize}
+                    totalOptimizedSize={totalMetrics().totalOptimizedSize}
+                    averageReduction={totalMetrics().averageReduction}
+                    elapsedTime={elapsedTime()}
+                    onClose={() => setShowSuccessMetrics(false)}
+                  />
+                </Show>
+
+                {/* Header per il caricamento dei metadati */}
                 <Show when={isLoadingMetadata()}>
                   <div class="w-full bg-gradient-to-r from-info/10 to-info/5 p-4 rounded-xl border border-info/20 animate-fade-in shadow-lg mb-2">
                     <div class="flex justify-between items-center mb-3">
