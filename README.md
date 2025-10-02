@@ -6,7 +6,7 @@
 
 ![Iron](screenshot.png)
 
-**Iron** is a high-performance, cross-platform desktop application for optimizing web images. Built with a **Rust** backend and a reactive **SolidJS** frontend on top of **Tauri**, it delivers a native, secure, and blazingly fast experience.
+**Iron** is a high-performance, cross-platform desktop application for optimizing web images. Built with a **Rust** backend and a reactive **SolidJS** frontend on top of **Tauri**, it delivers a native, secure, and fast experience.
 
 ---
 
@@ -20,8 +20,6 @@
 - **Batch Operations** - Process hundreds of images simultaneously
 - **Drag & Drop** - Intuitive file and folder support
 - **Cross-platform** - Windows, macOS, and Linux support
-
-![Iron](screenshot2.png)
 
 ---
 
