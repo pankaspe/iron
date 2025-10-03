@@ -9,6 +9,7 @@ import {
   FiInfo,
   FiFolder,
   FiFolderPlus,
+  FiDroplet,
 } from "solid-icons/fi";
 
 // --- Tipi ---
@@ -32,11 +33,18 @@ export type OutputDestination =
   | { type: "sameFolder" }
   | { type: "customFolder"; path: string };
 
+export type ColorConversionIntent =
+  | "perceptual"
+  | "relativeColorimetric"
+  | "saturation"
+  | "absoluteColorimetric";
+
 export type OptimizationOptions = {
   format: OutputFormat;
   profile: CompressionProfile;
   resize: ResizePreset;
   destination: OutputDestination;
+  colorIntent: ColorConversionIntent;
 };
 
 type StoreSetter<T> = (key: keyof T, value: T[keyof T]) => void;
@@ -164,6 +172,48 @@ const RESIZE_PRESETS: {
   },
 ];
 
+// NUOVO: Opzioni per l'intento di conversione colore
+const COLOR_INTENT_OPTIONS: {
+  value: ColorConversionIntent;
+  label: string;
+  description: string;
+  technicalInfo: string;
+  recommended: string;
+}[] = [
+  {
+    value: "perceptual",
+    label: "Perceptual",
+    description: "Maintains visual relationships between colors",
+    technicalInfo:
+      "Best for photographs and images with smooth gradients. Preserves the overall appearance.",
+    recommended: "Photos & Natural Images",
+  },
+  {
+    value: "relativeColorimetric",
+    label: "Relative Colorimetric",
+    description: "Preserves in-gamut colors accurately",
+    technicalInfo:
+      "Default intent. Clips out-of-gamut colors to the nearest reproducible color. Good balance.",
+    recommended: "General Purpose",
+  },
+  {
+    value: "saturation",
+    label: "Saturation",
+    description: "Maximizes color vibrancy",
+    technicalInfo:
+      "Preserves saturation at the expense of hue accuracy. Ideal for graphics and charts.",
+    recommended: "Graphics & Charts",
+  },
+  {
+    value: "absoluteColorimetric",
+    label: "Absolute Colorimetric",
+    description: "Exact color matching",
+    technicalInfo:
+      "Simulates colors exactly as they would appear. Used for proofing and precise color matching.",
+    recommended: "Color Proofing",
+  },
+];
+
 export function SettingsPage(props: SettingsPageProps) {
   const handleFormatChange = (newFormat: OutputFormat) => {
     props.setOptions("format", newFormat);
@@ -246,7 +296,7 @@ export function SettingsPage(props: SettingsPageProps) {
 
       {/* Content */}
       <div class="flex-grow overflow-y-auto p-6">
-        <div class="max-w-6xl mx-auto space-y-8">
+        <div class="max-w-4xl mx-auto space-y-8">
           {/* Output Format Section */}
           <section class="card bg-base-100 shadow-lg">
             <div class="card-body">
@@ -538,6 +588,72 @@ export function SettingsPage(props: SettingsPageProps) {
                   </div>
                 </div>
               </Show>
+            </div>
+          </section>
+
+          {/* NUOVO: Color Conversion Intent Section */}
+          <section class="card bg-base-100 shadow-lg">
+            <div class="card-body">
+              <h2 class="card-title text-2xl flex items-center gap-2">
+                <FiDroplet class="text-info" size={28} />
+                Color Conversion Intent
+              </h2>
+              <p class="text-base-content/70 mb-4">
+                How to handle color space conversions when converting non-sRGB
+                images
+              </p>
+
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <For each={COLOR_INTENT_OPTIONS}>
+                  {(intent) => (
+                    <div
+                      class="card border-2 cursor-pointer transition-all hover:shadow-md"
+                      classList={{
+                        "border-info bg-info/5":
+                          props.options.colorIntent === intent.value,
+                        "border-base-300 hover:border-info/50":
+                          props.options.colorIntent !== intent.value,
+                      }}
+                      onClick={() =>
+                        props.setOptions("colorIntent", intent.value)
+                      }
+                    >
+                      <div class="card-body p-4">
+                        <h3 class="font-bold text-base flex items-center justify-between">
+                          {intent.label}
+                          <Show when={intent.value === "perceptual"}>
+                            <span class="badge badge-info badge-sm">
+                              Recommended
+                            </span>
+                          </Show>
+                        </h3>
+                        <p class="text-sm text-base-content/70 mt-1">
+                          {intent.description}
+                        </p>
+                        <p class="text-xs text-base-content/50 mt-2">
+                          {intent.technicalInfo}
+                        </p>
+                        <div class="badge badge-ghost badge-sm mt-2">
+                          Best for: {intent.recommended}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </For>
+              </div>
+
+              <div class="alert alert-info mt-4">
+                <FiInfo />
+                <div>
+                  <div class="font-bold">Professional Color Management</div>
+                  <div class="text-sm">
+                    Using LCMS2 (Little CMS) for accurate color conversions.
+                    This ensures maximum color fidelity when converting from
+                    wide-gamut color spaces like Adobe RGB, Display P3, or
+                    ProPhoto RGB to sRGB.
+                  </div>
+                </div>
+              </div>
             </div>
           </section>
         </div>

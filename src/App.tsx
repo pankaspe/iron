@@ -92,11 +92,21 @@ function App() {
       profile: "balanced",
       resize: "qhd2k",
       destination: { type: "sameFolder" },
+      colorIntent: "perceptual", // NUOVO: default per foto
     };
     try {
       const savedSettings = localStorage.getItem(SETTINGS_STORAGE_KEY);
       if (savedSettings) {
-        return { ...defaults, ...JSON.parse(savedSettings) };
+        const parsed = JSON.parse(savedSettings);
+        // Merge con i defaults per garantire che tutti i campi esistano
+        // Questo gestisce la migrazione quando aggiungiamo nuovi campi
+        return {
+          format: parsed.format || defaults.format,
+          profile: parsed.profile || defaults.profile,
+          resize: parsed.resize || defaults.resize,
+          destination: parsed.destination || defaults.destination,
+          colorIntent: parsed.colorIntent || defaults.colorIntent, // Usa default se manca
+        };
       }
     } catch (error) {
       console.error("Failed to parse saved settings, using defaults.", error);
@@ -328,9 +338,20 @@ function App() {
         },
       );
 
+      // Assicuriamoci che tutte le opzioni siano presenti
+      const optionsToSend = {
+        format: options.format,
+        profile: options.profile,
+        resize: options.resize,
+        destination: options.destination,
+        color_intent: options.colorIntent || "perceptual", // Fallback sicuro
+      };
+
+      console.log("Sending optimization options:", optionsToSend);
+
       await invoke("optimize_images", {
         paths: files.map((f) => f.path),
-        options: { ...options },
+        options: optionsToSend,
       });
 
       // NUOVO: Mostra metriche di successo dopo il completamento

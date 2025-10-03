@@ -1,5 +1,6 @@
 // src-tauri/src/core/image_processing.rs
 
+use crate::core::color_management::{ColorManager, RenderingIntent};
 use crate::core::color_profile::{self};
 use crate::core::image_decoder;
 use crate::core::models::{
@@ -297,6 +298,52 @@ impl ImageProcessor {
                 image::open(path).ok()?
             }
             _ => return None,
+        };
+
+        // NUOVO: Converti il profilo colore se necessario usando LCMS2
+        let color_profile = color_profile::detect_color_profile(path);
+        let img = if !color_profile.is_web_safe() {
+            println!(
+                "Converting color profile from {:?} to sRGB for {}",
+                color_profile,
+                path.display()
+            );
+
+            // Converti l'intent dalle opzioni
+            let intent = match &self.options.color_intent {
+                settings::ColorConversionIntent::Perceptual => RenderingIntent::Perceptual,
+                settings::ColorConversionIntent::RelativeColorimetric => {
+                    RenderingIntent::RelativeColorimetric
+                }
+                settings::ColorConversionIntent::Saturation => RenderingIntent::Saturation,
+                settings::ColorConversionIntent::AbsoluteColorimetric => {
+                    RenderingIntent::AbsoluteColorimetric
+                }
+            };
+
+            match ColorManager::new() {
+                Ok(color_manager) => {
+                    match color_manager.convert_to_srgb(&img, &color_profile, intent) {
+                        Ok(converted_img) => {
+                            println!("✓ Color conversion successful with intent: {:?}", intent);
+                            converted_img
+                        }
+                        Err(e) => {
+                            eprintln!("⚠ Color conversion failed: {}, using original", e);
+                            img
+                        }
+                    }
+                }
+                Err(e) => {
+                    eprintln!(
+                        "⚠ Failed to create ColorManager: {}, skipping conversion",
+                        e
+                    );
+                    img
+                }
+            }
+        } else {
+            img
         };
 
         // Applica il resize prima dell'encoding

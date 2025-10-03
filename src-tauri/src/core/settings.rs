@@ -90,11 +90,21 @@ pub enum OutputDestination {
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
+#[serde(rename_all = "camelCase")]
+pub enum ColorConversionIntent {
+    Perceptual,           // Migliore per foto
+    RelativeColorimetric, // Default, preserva colori in gamut
+    Saturation,           // Massimizza saturazione (grafica)
+    AbsoluteColorimetric, // Preserva valori assoluti
+}
+
+#[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct OptimizationOptions {
     pub format: OutputFormat,
     pub profile: CompressionProfile,
     pub resize: ResizePreset,
     pub destination: OutputDestination,
+    pub color_intent: ColorConversionIntent, // NUOVO
 }
 
 /// Applica il resize all'immagine se necessario
