@@ -1,5 +1,6 @@
 // src-tauri/src/core/models.rs
 use crate::core::color_profile::ColorProfile;
+use crate::core::exif_handler::ExifData;
 use serde::Serialize;
 
 // --- Modelli per la Comunicazione con il Frontend ---

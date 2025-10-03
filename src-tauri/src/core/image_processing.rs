@@ -2,6 +2,7 @@
 
 use crate::core::color_management::{ColorManager, RenderingIntent};
 use crate::core::color_profile::{self};
+use crate::core::exif_handler::ExifHandler;
 use crate::core::image_decoder;
 use crate::core::models::{
     ImageInfo, MetadataProgressPayload, OptimizationResult, ProgressPayload,

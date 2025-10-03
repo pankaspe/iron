@@ -1,6 +1,7 @@
 // src-tauri/src/core/mod.rs
 pub mod color_management;
 pub mod color_profile;
+pub mod exif_handler;
 pub mod image_decoder;
 pub mod image_processing;
 pub mod models;
