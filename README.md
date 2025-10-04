@@ -75,6 +75,13 @@
 - Smooth UI updates as images load
 - Supports drag & drop and folder imports
 
+### 🧭 EXIF Metadata Extraction
+- Automatic detection of embedded **EXIF tags** in JPEG/RAW images
+- Displays camera settings, lens info, focal length, exposure, ISO, etc.
+- Preserves GPS metadata (if present)
+- Extracted via native Rust **exif** crate
+- Accessible directly in the **Preview Panel**
+
 ## Architecture & Performance
 
 ### Hardware-Adaptive Parallelism with Rayon
@@ -219,6 +226,7 @@ transform.transform_pixels(input_row, output_row)
 - **imagequant 4.4** - Advanced palette quantization
 - **oxipng 9.1** - Lossless PNG optimizer
 - **serde 1.0** - Serialization framework
+- **exif 0.7** - Metadata parsing and EXIF extraction
 
 ### Frontend (TypeScript)
 - **SolidJS** - Reactive UI framework
