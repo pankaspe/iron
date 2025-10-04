@@ -10,6 +10,7 @@ import {
   FiFolder,
   FiFolderPlus,
   FiDroplet,
+  FiShield,
 } from "solid-icons/fi";
 
 // --- Tipi ---
@@ -39,12 +40,21 @@ export type ColorConversionIntent =
   | "saturation"
   | "absoluteColorimetric";
 
+export type ExifOptions = {
+  preserveAll: boolean;
+  stripGps: boolean;
+  stripThumbnail: boolean;
+  updateSoftware: boolean;
+  preserveCopyright: boolean;
+};
+
 export type OptimizationOptions = {
   format: OutputFormat;
   profile: CompressionProfile;
   resize: ResizePreset;
   destination: OutputDestination;
   colorIntent: ColorConversionIntent;
+  exifOptions: ExifOptions; // NUOVO
 };
 
 type StoreSetter<T> = (key: keyof T, value: T[keyof T]) => void;
@@ -651,6 +661,180 @@ export function SettingsPage(props: SettingsPageProps) {
                     This ensures maximum color fidelity when converting from
                     wide-gamut color spaces like Adobe RGB, Display P3, or
                     ProPhoto RGB to sRGB.
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* NUOVO: EXIF Metadata Options Section */}
+          <section class="card bg-base-100 shadow-lg">
+            <div class="card-body">
+              <h2 class="card-title text-2xl flex items-center gap-2">
+                <FiShield class="text-success" size={28} />
+                EXIF Metadata Options
+              </h2>
+              <p class="text-base-content/70 mb-4">
+                Control how EXIF metadata is handled during optimization
+              </p>
+
+              <div class="space-y-4">
+                {/* Preserve All Toggle */}
+                <div class="form-control">
+                  <label class="label cursor-pointer justify-start gap-4">
+                    <input
+                      type="checkbox"
+                      class="toggle toggle-success"
+                      checked={props.options.exifOptions.preserveAll}
+                      onChange={(e) =>
+                        props.setOptions("exifOptions", {
+                          ...props.options.exifOptions,
+                          preserveAll: e.currentTarget.checked,
+                        })
+                      }
+                    />
+                    <div class="flex-1">
+                      <span class="label-text font-bold">
+                        Preserve All Metadata
+                      </span>
+                      <p class="text-xs text-base-content/60 mt-1">
+                        Keep all EXIF data in optimized images (camera settings,
+                        dates, etc.)
+                      </p>
+                    </div>
+                  </label>
+                </div>
+
+                <div class="divider my-2"></div>
+
+                {/* Privacy Options */}
+                <div class="bg-warning/5 rounded-lg p-4 border border-warning/20">
+                  <h4 class="font-bold text-sm mb-3 flex items-center gap-2">
+                    <FiShield class="text-warning" />
+                    Privacy & Security
+                  </h4>
+
+                  <div class="space-y-3">
+                    <div class="form-control">
+                      <label class="label cursor-pointer justify-start gap-4">
+                        <input
+                          type="checkbox"
+                          class="toggle toggle-warning toggle-sm"
+                          checked={props.options.exifOptions.stripGps}
+                          onChange={(e) =>
+                            props.setOptions("exifOptions", {
+                              ...props.options.exifOptions,
+                              stripGps: e.currentTarget.checked,
+                            })
+                          }
+                        />
+                        <div class="flex-1">
+                          <span class="label-text font-semibold">
+                            Strip GPS Location
+                          </span>
+                          <p class="text-xs text-base-content/60 mt-1">
+                            Remove geolocation data for privacy (recommended for
+                            web publishing)
+                          </p>
+                        </div>
+                      </label>
+                    </div>
+
+                    <div class="form-control">
+                      <label class="label cursor-pointer justify-start gap-4">
+                        <input
+                          type="checkbox"
+                          class="toggle toggle-sm"
+                          checked={props.options.exifOptions.stripThumbnail}
+                          onChange={(e) =>
+                            props.setOptions("exifOptions", {
+                              ...props.options.exifOptions,
+                              stripThumbnail: e.currentTarget.checked,
+                            })
+                          }
+                        />
+                        <div class="flex-1">
+                          <span class="label-text font-semibold">
+                            Remove Embedded Thumbnail
+                          </span>
+                          <p class="text-xs text-base-content/60 mt-1">
+                            Strip embedded preview image to reduce file size
+                            (~20-50KB savings)
+                          </p>
+                        </div>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Copyright & Attribution */}
+                <div class="bg-info/5 rounded-lg p-4 border border-info/20">
+                  <h4 class="font-bold text-sm mb-3 flex items-center gap-2">
+                    <FiInfo class="text-info" />
+                    Copyright & Attribution
+                  </h4>
+
+                  <div class="space-y-3">
+                    <div class="form-control">
+                      <label class="label cursor-pointer justify-start gap-4">
+                        <input
+                          type="checkbox"
+                          class="toggle toggle-info toggle-sm"
+                          checked={props.options.exifOptions.preserveCopyright}
+                          onChange={(e) =>
+                            props.setOptions("exifOptions", {
+                              ...props.options.exifOptions,
+                              preserveCopyright: e.currentTarget.checked,
+                            })
+                          }
+                        />
+                        <div class="flex-1">
+                          <span class="label-text font-semibold">
+                            Preserve Copyright Info
+                          </span>
+                          <p class="text-xs text-base-content/60 mt-1">
+                            Keep artist and copyright metadata (recommended for
+                            professional work)
+                          </p>
+                        </div>
+                      </label>
+                    </div>
+
+                    <div class="form-control">
+                      <label class="label cursor-pointer justify-start gap-4">
+                        <input
+                          type="checkbox"
+                          class="toggle toggle-sm"
+                          checked={props.options.exifOptions.updateSoftware}
+                          onChange={(e) =>
+                            props.setOptions("exifOptions", {
+                              ...props.options.exifOptions,
+                              updateSoftware: e.currentTarget.checked,
+                            })
+                          }
+                        />
+                        <div class="flex-1">
+                          <span class="label-text font-semibold">
+                            Update Software Tag
+                          </span>
+                          <p class="text-xs text-base-content/60 mt-1">
+                            Add "Iron Optimizer" to software metadata
+                          </p>
+                        </div>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="alert alert-info mt-4">
+                <FiInfo />
+                <div class="text-sm">
+                  <div class="font-bold">EXIF Metadata Management</div>
+                  <div>
+                    EXIF data includes camera settings, dates, and potentially
+                    sensitive location information. Choose options based on your
+                    privacy needs and intended use.
                   </div>
                 </div>
               </div>

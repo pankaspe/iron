@@ -29,7 +29,9 @@ export type ImageFile = {
   color_profile: ColorProfile;
   needs_conversion: boolean;
   preview_path?: string;
-  thumbnail_path?: string; // NUOVO: thumbnail dalla cache
+  thumbnail_path?: string;
+  exif_data?: any; // Cambiato da exif_data a exifData (camelCase)
+  has_exif?: boolean; // Cambiato da has_exif a hasExif (camelCase)
   status: "pending" | "done";
   result?: {
     optimized_path: string;

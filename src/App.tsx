@@ -28,6 +28,35 @@ import { FiAlertTriangle } from "solid-icons/fi";
 import "./App.css";
 
 // Tipi da Rust
+type ExifData = {
+  cameraMake?: string;
+  cameraModel?: string;
+  lensModel?: string;
+  iso?: number;
+  aperture?: string;
+  shutterSpeed?: string;
+  focalLength?: string;
+  exposureBias?: string;
+  flash?: string;
+  dateTaken?: string;
+  dateDigitized?: string;
+  dateModified?: string;
+  width?: number;
+  height?: number;
+  orientation?: number;
+  colorSpace?: string;
+  gpsLatitude?: number;
+  gpsLongitude?: number;
+  gpsAltitude?: number;
+  artist?: string;
+  copyright?: string;
+  software?: string;
+  description?: string;
+  whiteBalance?: string;
+  meteringMode?: string;
+  sceneType?: string;
+};
+
 type ImageInfo = {
   path: string;
   size_kb: number;
@@ -36,7 +65,9 @@ type ImageInfo = {
   color_profile: ColorProfile;
   needs_conversion: boolean;
   preview_path?: string;
-  thumbnail_path?: string; // NUOVO: thumbnail cache
+  thumbnail_path?: string;
+  exifData?: ExifData; // Tipo completo invece di any
+  hasExif?: boolean;
 };
 
 type ColorProfile =
@@ -92,20 +123,26 @@ function App() {
       profile: "balanced",
       resize: "qhd2k",
       destination: { type: "sameFolder" },
-      colorIntent: "perceptual", // NUOVO: default per foto
+      colorIntent: "perceptual",
+      exifOptions: {
+        preserveAll: true,
+        stripGps: false,
+        stripThumbnail: true,
+        updateSoftware: true,
+        preserveCopyright: true,
+      },
     };
     try {
       const savedSettings = localStorage.getItem(SETTINGS_STORAGE_KEY);
       if (savedSettings) {
         const parsed = JSON.parse(savedSettings);
-        // Merge con i defaults per garantire che tutti i campi esistano
-        // Questo gestisce la migrazione quando aggiungiamo nuovi campi
         return {
           format: parsed.format || defaults.format,
           profile: parsed.profile || defaults.profile,
           resize: parsed.resize || defaults.resize,
           destination: parsed.destination || defaults.destination,
-          colorIntent: parsed.colorIntent || defaults.colorIntent, // Usa default se manca
+          colorIntent: parsed.colorIntent || defaults.colorIntent,
+          exifOptions: parsed.exifOptions || defaults.exifOptions,
         };
       }
     } catch (error) {
@@ -344,7 +381,14 @@ function App() {
         profile: options.profile,
         resize: options.resize,
         destination: options.destination,
-        color_intent: options.colorIntent || "perceptual", // Fallback sicuro
+        color_intent: options.colorIntent || "perceptual",
+        exif_options: options.exifOptions || {
+          preserveAll: true,
+          stripGps: false,
+          stripThumbnail: true,
+          updateSoftware: true,
+          preserveCopyright: true,
+        },
       };
 
       console.log("Sending optimization options:", optionsToSend);

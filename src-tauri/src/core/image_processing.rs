@@ -158,6 +158,24 @@ fn extract_image_info(
         None
     };
 
+    // NUOVO: Estrai dati EXIF se disponibili
+    let has_exif = ExifHandler::has_exif(path);
+    let exif_data = if has_exif {
+        match ExifHandler::extract_exif(path) {
+            Ok(data) => {
+                println!("✓ EXIF data extracted for: {}", path.display());
+                Some(data)
+            }
+            Err(e) => {
+                eprintln!("⚠ Failed to extract EXIF for {}: {}", path.display(), e);
+                None
+            }
+        }
+    } else {
+        println!("No EXIF data found for: {}", path.display());
+        None
+    };
+
     Ok(ImageInfo {
         path: p_str,
         size_kb: metadata.len() as f64 / 1024.0,
@@ -167,6 +185,8 @@ fn extract_image_info(
         needs_conversion,
         preview_path: None,
         thumbnail_path,
+        exif_data,
+        has_exif,
     })
 }
 

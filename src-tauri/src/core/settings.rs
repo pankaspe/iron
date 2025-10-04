@@ -99,12 +99,23 @@ pub enum ColorConversionIntent {
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct ExifOptions {
+    pub preserve_all: bool,
+    pub strip_gps: bool,
+    pub strip_thumbnail: bool,
+    pub update_software: bool,
+    pub preserve_copyright: bool,
+}
+
+#[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct OptimizationOptions {
     pub format: OutputFormat,
     pub profile: CompressionProfile,
     pub resize: ResizePreset,
     pub destination: OutputDestination,
-    pub color_intent: ColorConversionIntent, // NUOVO
+    pub color_intent: ColorConversionIntent,
+    pub exif_options: ExifOptions, // NUOVO
 }
 
 /// Applica il resize all'immagine se necessario

@@ -12,8 +12,10 @@ pub struct ImageInfo {
     pub last_modified: u64,
     pub color_profile: ColorProfile,
     pub needs_conversion: bool,
-    pub preview_path: Option<String>, // Path della thumbnail per anteprime veloci
-    pub thumbnail_path: Option<String>, // NUOVO: thumbnail in cache
+    pub preview_path: Option<String>,
+    pub thumbnail_path: Option<String>,
+    pub exif_data: Option<ExifData>,
+    pub has_exif: bool,
 }
 
 #[derive(Clone, Serialize)]
