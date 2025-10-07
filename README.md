@@ -4,7 +4,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Rust Version](https://img.shields.io/badge/rust-2021_edition-orange.svg)](https://www.rust-lang.org/)
 
-![Iron](screenshot-new.png)
+![Iron](screenshot.png)
 
 **Iron** is a high-performance, cross-platform desktop application for optimizing web images. Built with a **Rust** backend and a reactive **SolidJS** frontend on top of **Tauri**, it delivers a native, secure, and fast experience.
 
