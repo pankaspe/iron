@@ -24,7 +24,7 @@ import { Footer, SystemInfo } from "./components/Footer";
 import { SettingsPage, OptimizationOptions } from "./components/SettingsPage";
 import { OptimizationHeader } from "./components/OptimizationHeader";
 import { SuccessMetrics } from "./components/SuccessMetrics";
-import { FiAlertTriangle } from "solid-icons/fi";
+import { FiAlertTriangle, FiImage } from "solid-icons/fi";
 import "./App.css";
 
 // Tipi da Rust
@@ -66,7 +66,7 @@ type ImageInfo = {
   needs_conversion: boolean;
   preview_path?: string;
   thumbnail_path?: string;
-  exifData?: ExifData; // Tipo completo invece di any
+  exifData?: ExifData;
   hasExif?: boolean;
 };
 
@@ -99,24 +99,24 @@ type MetadataProgressPayload = {
 
 let timerInterval: number | undefined;
 
-// --- Chiave per il localStorage ---
+// Chiave per il localStorage
 const SETTINGS_STORAGE_KEY = "iron-optimizer-settings";
 
 function App() {
   const [files, setFiles] = createStore<ImageFile[]>([]);
   const [isLoading, setIsLoading] = createSignal(false);
-  const [isLoadingMetadata, setIsLoadingMetadata] = createSignal(false); // NUOVO
+  const [isLoadingMetadata, setIsLoadingMetadata] = createSignal(false);
   const [metadataProgress, setMetadataProgress] = createSignal({
     current: 0,
     total: 0,
-  }); // NUOVO
+  });
   const [errorMessage, setErrorMessage] = createSignal<string | null>(null);
   const [systemInfo, setSystemInfo] = createSignal<SystemInfo | null>(null);
   const [selectedFileForPreview, setSelectedFileForPreview] =
     createSignal<ImageFile | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = createSignal(false);
 
-  // --- Funzione per caricare le impostazioni all'avvio ---
+  // Funzione per caricare le impostazioni all'avvio
   const loadInitialSettings = (): OptimizationOptions => {
     const defaults: OptimizationOptions = {
       format: "webp",
@@ -155,7 +155,7 @@ function App() {
     loadInitialSettings(),
   );
 
-  // --- Effetto per salvare le impostazioni a ogni cambiamento ---
+  // Effetto per salvare le impostazioni a ogni cambiamento
   createEffect(() => {
     try {
       localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(options));
@@ -173,11 +173,11 @@ function App() {
 
   const [progress, setProgress] = createStore({ current: 0, total: 0 });
   const [elapsedTime, setElapsedTime] = createSignal(0);
-  const [showSuccessMetrics, setShowSuccessMetrics] = createSignal(false); // NUOVO
+  const [showSuccessMetrics, setShowSuccessMetrics] = createSignal(false);
 
   const completedCount = () => files.filter((f) => f.status === "done").length;
 
-  // NUOVO: Calcola metriche totali
+  // Calcola metriche totali
   const totalMetrics = () => {
     const completed = files.filter((f) => f.status === "done");
     const totalOriginal = completed.reduce((sum, f) => sum + f.size_kb, 0);
@@ -206,7 +206,7 @@ function App() {
     setSelectedFileForPreview(null);
     setProgress({ current: 0, total: 0 });
     setMetadataProgress({ current: 0, total: 0 });
-    setShowSuccessMetrics(false); // NUOVO
+    setShowSuccessMetrics(false);
   }
 
   onMount(() => {
@@ -236,7 +236,7 @@ function App() {
         handleNewFiles(event.payload.paths);
       });
 
-      // NUOVO: Listener per il progresso dei metadati
+      // Listener per il progresso dei metadati
       unlistenMetadataProgress = await listen<MetadataProgressPayload>(
         "metadata-progress",
         (event) => {
@@ -247,7 +247,6 @@ function App() {
             status: "pending" as const,
           };
 
-          // Aggiungi o aggiorna il file
           setFiles((currentFiles) => {
             const existingIndex = currentFiles.findIndex(
               (f) => f.id === newFile.id,
@@ -265,7 +264,7 @@ function App() {
         },
       );
 
-      // NUOVO: Listener per il completamento dei metadati
+      // Listener per il completamento dei metadati
       unlistenMetadataComplete = await listen("metadata-complete", () => {
         setIsLoadingMetadata(false);
         setMetadataProgress({ current: 0, total: 0 });
@@ -289,7 +288,6 @@ function App() {
     setErrorMessage(null);
 
     try {
-      // Filtra solo i path che non sono già nella lista
       const currentPaths = new Set(files.map((f) => f.path));
       const uniqueNewPaths = paths.filter((p) => !currentPaths.has(p));
 
@@ -298,12 +296,9 @@ function App() {
         return;
       }
 
-      // Usa il nuovo comando progressivo
       await invoke("get_image_metadata_progressive", {
         paths: uniqueNewPaths,
       });
-
-      // Il caricamento termina automaticamente tramite l'evento "metadata-complete"
     } catch (e) {
       console.error("Failed to process new files:", e);
       setErrorMessage("Failed to read some of the provided files.");
@@ -344,7 +339,7 @@ function App() {
     setIsLoading(true);
     setErrorMessage(null);
     setSelectedFileForPreview(null);
-    setShowSuccessMetrics(false); // NUOVO: nascondi metriche precedenti
+    setShowSuccessMetrics(false);
     setProgress({ current: 0, total: files.length });
     setElapsedTime(0);
     const startTime = Date.now();
@@ -375,7 +370,6 @@ function App() {
         },
       );
 
-      // Assicuriamoci che tutte le opzioni siano presenti
       const optionsToSend = {
         format: options.format,
         profile: options.profile,
@@ -391,14 +385,11 @@ function App() {
         },
       };
 
-      console.log("Sending optimization options:", optionsToSend);
-
       await invoke("optimize_images", {
         paths: files.map((f) => f.path),
         options: optionsToSend,
       });
 
-      // NUOVO: Mostra metriche di successo dopo il completamento
       setShowSuccessMetrics(true);
     } catch (e) {
       console.error("Optimization failed:", e);
@@ -437,18 +428,21 @@ function App() {
           completedCount={completedCount()}
         />
 
-        <div class="flex-grow flex flex-col pl-24">
-          <div class="flex-grow flex flex-row p-4 gap-4 overflow-hidden">
-            <main class="flex-grow w-1/2 flex flex-col min-w-0 bg-base-200/30 rounded-lg p-2">
+        <div class="flex-grow flex flex-col pl-20">
+          <div class="flex-grow flex flex-row p-2 gap-2 overflow-hidden">
+            <main class="flex-grow flex flex-col min-w-0 bg-base-200/30 rounded-lg p-2 lg:w-3/5">
               <header class="flex-shrink-0 px-2 pb-2">
                 <Show when={errorMessage()}>
-                  <div role="alert" class="alert alert-error alert-sm">
-                    <FiAlertTriangle />
-                    <span>{errorMessage()}</span>
+                  <div
+                    role="alert"
+                    class="alert alert-error alert-sm py-2 mb-2"
+                  >
+                    <FiAlertTriangle size={14} />
+                    <span class="text-xs">{errorMessage()}</span>
                   </div>
                 </Show>
 
-                {/* NUOVO: Success Metrics */}
+                {/* Success Metrics */}
                 <Show when={showSuccessMetrics() && !isLoading()}>
                   <SuccessMetrics
                     totalFiles={totalMetrics().totalFiles}
@@ -462,20 +456,20 @@ function App() {
 
                 {/* Header per il caricamento dei metadati */}
                 <Show when={isLoadingMetadata()}>
-                  <div class="w-full bg-gradient-to-r from-info/10 to-info/5 p-4 rounded-xl border border-info/20 animate-fade-in shadow-lg mb-2">
-                    <div class="flex justify-between items-center mb-3">
-                      <div class="flex items-center gap-3">
-                        <span class="loading loading-spinner loading-sm text-info"></span>
+                  <div class="w-full bg-gradient-to-r from-info/10 to-info/5 p-2 rounded-lg border border-info/20 animate-fade-in shadow mb-2">
+                    <div class="flex justify-between items-center mb-1.5">
+                      <div class="flex items-center gap-2">
+                        <span class="loading loading-spinner loading-xs text-info"></span>
                         <div>
-                          <h3 class="font-bold text-base">Loading Images</h3>
-                          <p class="text-sm text-base-content/60">
-                            Processing {metadataProgress().current} of{" "}
-                            {metadataProgress().total} files
+                          <h3 class="font-bold text-xs">Loading Images</h3>
+                          <p class="text-[10px] text-base-content/60">
+                            {metadataProgress().current} of{" "}
+                            {metadataProgress().total}
                           </p>
                         </div>
                       </div>
                       <div class="text-right">
-                        <div class="text-2xl font-bold font-mono text-info">
+                        <div class="text-lg font-bold font-mono text-info">
                           {metadataProgress().total > 0
                             ? Math.round(
                                 (metadataProgress().current /
@@ -487,7 +481,7 @@ function App() {
                         </div>
                       </div>
                     </div>
-                    <div class="w-full bg-base-200 rounded-full h-2 overflow-hidden">
+                    <div class="w-full bg-base-200 rounded-full h-1.5 overflow-hidden">
                       <div
                         class="h-full bg-gradient-to-r from-info to-info/70 rounded-full transition-all duration-300"
                         style={{
@@ -508,6 +502,7 @@ function App() {
                   />
                 </Show>
               </header>
+
               <Switch>
                 <Match when={files.length > 0}>
                   <ProcessingTable
@@ -523,12 +518,16 @@ function App() {
                 </Match>
               </Switch>
             </main>
-            <aside class="w-1/2 flex-shrink-0">
+
+            <aside class="flex-shrink-0 lg:w-2/5 hidden md:block">
               <Show
                 when={selectedFileForPreview()}
                 fallback={
                   <div class="w-full h-full flex items-center justify-center text-base-content/40 rounded-lg bg-base-200/30">
-                    <p>Select an image to see the preview</p>
+                    <div class="text-center p-4">
+                      <FiImage size={32} class="mx-auto mb-2 opacity-50" />
+                      <p class="text-xs">Select an image to preview</p>
+                    </div>
                   </div>
                 }
               >
@@ -539,6 +538,7 @@ function App() {
               </Show>
             </aside>
           </div>
+
           <footer class="flex-shrink-0 border-t border-base-300">
             <Footer info={systemInfo()} />
           </footer>
