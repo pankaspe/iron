@@ -678,6 +678,19 @@ export function SettingsPage(props: SettingsPageProps) {
                 Control how EXIF metadata is handled during optimization
               </p>
 
+              {/* Format Support Warning - NUOVO */}
+              <div class="alert alert-warning mb-4">
+                <FiInfo />
+                <div class="text-sm">
+                  <div class="font-bold">Format Support</div>
+                  <div>
+                    EXIF preservation is{" "}
+                    <strong>fully supported only for JPEG</strong> format. PNG
+                    and WebP formats will skip EXIF preservation.
+                  </div>
+                </div>
+              </div>
+
               <div class="space-y-4">
                 {/* Preserve All Toggle */}
                 <div class="form-control">
@@ -715,26 +728,24 @@ export function SettingsPage(props: SettingsPageProps) {
                   </h4>
 
                   <div class="space-y-3">
-                    <div class="form-control">
-                      <label class="label cursor-pointer justify-start gap-4">
+                    <div class="form-control opacity-50">
+                      <label class="label cursor-not-allowed justify-start gap-4">
                         <input
                           type="checkbox"
                           class="toggle toggle-warning toggle-sm"
-                          checked={props.options.exifOptions.stripGps}
-                          onChange={(e) =>
-                            props.setOptions("exifOptions", {
-                              ...props.options.exifOptions,
-                              stripGps: e.currentTarget.checked,
-                            })
-                          }
+                          checked={true}
+                          disabled={true}
                         />
                         <div class="flex-1">
-                          <span class="label-text font-semibold">
+                          <span class="label-text font-semibold flex items-center gap-2">
                             Strip GPS Location
+                            <span class="badge badge-ghost badge-xs">
+                              Auto-Enabled
+                            </span>
                           </span>
                           <p class="text-xs text-base-content/60 mt-1">
-                            Remove geolocation data for privacy (recommended for
-                            web publishing)
+                            GPS data is <strong>never preserved</strong> in the
+                            current version for privacy protection
                           </p>
                         </div>
                       </label>
@@ -832,9 +843,17 @@ export function SettingsPage(props: SettingsPageProps) {
                 <div class="text-sm">
                   <div class="font-bold">EXIF Metadata Management</div>
                   <div>
-                    EXIF data includes camera settings, dates, and potentially
-                    sensitive location information. Choose options based on your
-                    privacy needs and intended use.
+                    <strong>Current Limitations:</strong>
+                    <ul class="list-disc list-inside mt-1 space-y-1">
+                      <li>
+                        <strong>GPS data is never preserved</strong> (automatic
+                        privacy protection)
+                      </li>
+                      <li>
+                        Full support only for <strong>JPEG</strong> format
+                      </li>
+                      <li>PNG and WebP will skip EXIF preservation</li>
+                    </ul>
                   </div>
                 </div>
               </div>
